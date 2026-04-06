@@ -1,0 +1,17 @@
+<section class="page">
+  <h2>Lots</h2>
+  <p>Initial page for active lots, closed history and exact lot search.</p>
+
+  <form [formGroup]="filtersForm" class="grid">
+    <input formControlName="make" placeholder="Make" />
+    <input formControlName="model" placeholder="Model" />
+    <input type="number" formControlName="yearFrom" placeholder="Year from" />
+    <input type="number" formControlName="yearTo" placeholder="Year to" />
+    <input formControlName="vehicleType" placeholder="Vehicle type" />
+    <input formControlName="uf" maxlength="2" placeholder="UF" />
+    <button type="button" (click)="applyFilters()">Apply filters</button>
+  </form>
+
+  <p class="preview">{{ filterPreview() }}</p>
+  <p class="todo">TODO: connect active lots, history and exact-lot endpoints.</p>
+</section>

@@ -1,0 +1,16 @@
+<section class="page">
+  <h2>Monitoring</h2>
+  <p>Phase 1 scaffold for monitored vehicles.</p>
+
+  <form [formGroup]="form" class="grid">
+    <input formControlName="make" placeholder="Make" />
+    <input formControlName="model" placeholder="Model" />
+    <input type="number" formControlName="yearFrom" placeholder="Year from" />
+    <input type="number" formControlName="yearTo" placeholder="Year to" />
+    <input formControlName="uf" maxlength="2" placeholder="UF" />
+    <button type="button" (click)="previewDraft()">Preview draft</button>
+  </form>
+
+  <p class="preview">{{ preview() }}</p>
+  <p class="todo">TODO: connect this form to monitoring endpoints.</p>
+</section>

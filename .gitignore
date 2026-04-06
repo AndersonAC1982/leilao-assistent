@@ -1,0 +1,21 @@
+# Build outputs
+**/bin/
+**/obj/
+**/dist/
+**/TestResults/
+
+# Node
+**/node_modules/
+npm-debug.log*
+
+# IDE / OS
+.vs/
+.vscode/
+*.user
+*.suo
+.DS_Store
+Thumbs.db
+
+# Secrets
+**/secrets.json
+*.pfx

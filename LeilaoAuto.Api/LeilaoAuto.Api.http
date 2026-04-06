@@ -1,0 +1,11 @@
+@LeilaoAuto.Api_HostAddress = http://localhost:8080
+
+POST {{LeilaoAuto.Api_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "demo@leilaoauto.local",
+  "password": "Demo1234"
+}
+
+###

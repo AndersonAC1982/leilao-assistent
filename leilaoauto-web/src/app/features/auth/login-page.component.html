@@ -1,0 +1,29 @@
+<main class="auth-shell">
+  <section class="auth-card">
+    <h1>LEILAOAUTO</h1>
+    <p>Phase 1 scaffold for automotive auction intelligence.</p>
+
+    <form [formGroup]="form">
+      <label>
+        Email
+        <input type="email" formControlName="email" placeholder="you@example.com" />
+      </label>
+
+      <label>
+        Password
+        <input type="password" formControlName="password" placeholder="Minimum 8 characters" />
+      </label>
+
+      <div class="actions">
+        <button type="button" (click)="submit('login')" [disabled]="loading()">Sign In</button>
+        <button type="button" class="secondary" (click)="submit('register')" [disabled]="loading()">
+          Create Account
+        </button>
+      </div>
+    </form>
+
+    @if (errorMessage()) {
+      <p class="error">{{ errorMessage() }}</p>
+    }
+  </section>
+</main>

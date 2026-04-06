@@ -1,0 +1,85 @@
+.shell {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #edf2f5 0%, #d6e2e9 100%);
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #c9d5de;
+  background: #ffffff;
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: 1.45rem;
+  letter-spacing: 0.06em;
+  font-family: 'Archivo Black', 'Trebuchet MS', sans-serif;
+}
+
+.topbar p {
+  margin: 0;
+  color: #526579;
+}
+
+.content-area {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: calc(100vh - 74px);
+}
+
+.sidebar {
+  border-right: 1px solid #c9d5de;
+  background: #fafcfd;
+  padding: 1rem 0.8rem;
+}
+
+.sidebar nav {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.sidebar a {
+  text-decoration: none;
+  color: #274058;
+  padding: 0.62rem 0.72rem;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.sidebar a.active {
+  background: #d9e8f5;
+  color: #183149;
+}
+
+.main-content {
+  padding: 1.1rem;
+}
+
+button {
+  border: none;
+  border-radius: 10px;
+  padding: 0.58rem 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  color: #ffffff;
+  background: linear-gradient(90deg, #ff7e2f, #f35d2e);
+}
+
+@media (max-width: 900px) {
+  .content-area {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    border-right: none;
+    border-bottom: 1px solid #c9d5de;
+  }
+
+  .sidebar nav {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  }
+}

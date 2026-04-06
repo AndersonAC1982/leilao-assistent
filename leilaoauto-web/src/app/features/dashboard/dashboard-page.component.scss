@@ -1,0 +1,32 @@
+.page {
+  display: grid;
+  gap: 1rem;
+}
+
+.page h2 {
+  margin: 0;
+  font-family: 'Archivo Black', 'Trebuchet MS', sans-serif;
+}
+
+.page p {
+  margin: 0.3rem 0 0;
+  color: #44576a;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.8rem;
+}
+
+.cards article {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 1rem;
+  border: 1px solid #d5e0e8;
+  box-shadow: 0 10px 24px rgba(16, 34, 49, 0.08);
+}
+
+.cards h3 {
+  margin: 0;
+}

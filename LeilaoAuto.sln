@@ -1,0 +1,52 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LeilaoAuto.Api", "LeilaoAuto.Api\LeilaoAuto.Api.csproj", "{EE3D23EB-A682-4E9E-A67A-C02C12F3D3A0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LeilaoAuto.Application", "LeilaoAuto.Application\LeilaoAuto.Application.csproj", "{AEBE249D-0EA2-46DB-9D29-01FB4BCF8561}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LeilaoAuto.Domain", "LeilaoAuto.Domain\LeilaoAuto.Domain.csproj", "{F61C1949-2000-4EB0-8716-8E65BC7514EC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LeilaoAuto.Infrastructure", "LeilaoAuto.Infrastructure\LeilaoAuto.Infrastructure.csproj", "{8201CD35-3A9A-4545-954D-027A55080B94}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LeilaoAuto.Workers", "LeilaoAuto.Workers\LeilaoAuto.Workers.csproj", "{251FC532-9FAA-4658-A06C-5233F404C85D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LeilaoAuto.Tests", "LeilaoAuto.Tests\LeilaoAuto.Tests.csproj", "{BE00439E-3A9E-43D5-BC1B-0D3884E9FC4E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EE3D23EB-A682-4E9E-A67A-C02C12F3D3A0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EE3D23EB-A682-4E9E-A67A-C02C12F3D3A0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EE3D23EB-A682-4E9E-A67A-C02C12F3D3A0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EE3D23EB-A682-4E9E-A67A-C02C12F3D3A0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AEBE249D-0EA2-46DB-9D29-01FB4BCF8561}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AEBE249D-0EA2-46DB-9D29-01FB4BCF8561}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AEBE249D-0EA2-46DB-9D29-01FB4BCF8561}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AEBE249D-0EA2-46DB-9D29-01FB4BCF8561}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F61C1949-2000-4EB0-8716-8E65BC7514EC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F61C1949-2000-4EB0-8716-8E65BC7514EC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F61C1949-2000-4EB0-8716-8E65BC7514EC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F61C1949-2000-4EB0-8716-8E65BC7514EC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8201CD35-3A9A-4545-954D-027A55080B94}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8201CD35-3A9A-4545-954D-027A55080B94}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8201CD35-3A9A-4545-954D-027A55080B94}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8201CD35-3A9A-4545-954D-027A55080B94}.Release|Any CPU.Build.0 = Release|Any CPU
+		{251FC532-9FAA-4658-A06C-5233F404C85D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{251FC532-9FAA-4658-A06C-5233F404C85D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{251FC532-9FAA-4658-A06C-5233F404C85D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{251FC532-9FAA-4658-A06C-5233F404C85D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BE00439E-3A9E-43D5-BC1B-0D3884E9FC4E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BE00439E-3A9E-43D5-BC1B-0D3884E9FC4E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BE00439E-3A9E-43D5-BC1B-0D3884E9FC4E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BE00439E-3A9E-43D5-BC1B-0D3884E9FC4E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

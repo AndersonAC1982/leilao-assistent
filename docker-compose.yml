@@ -1,0 +1,44 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: leilaoauto-postgres
+    environment:
+      POSTGRES_DB: leilaoauto
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - leilaoauto-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d leilaoauto"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: LeilaoAuto.Api/Dockerfile
+    container_name: leilaoauto-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=leilaoauto;Username=postgres;Password=postgres
+      Jwt__Issuer: LeilaoAuto.Api
+      Jwt__Audience: LeilaoAuto.Web
+      Jwt__SecretKey: LEILAOAUTO__JWT__THIS_IS_A_LONG_SECRET_KEY_FOR_DEVELOPMENT_2026
+      Jwt__ExpiresMinutes: 180
+      Cors__AllowedOrigins__0: http://localhost:4200
+      Fipe__Enabled: "true"
+      Fipe__BaseUrl: https://brasilapi.com.br
+      Fipe__PriceByCodeEndpoint: /api/fipe/preco/v1/{code}
+      Fipe__UseEstimatedFallback: "true"
+    ports:
+      - "8080:8080"
+
+volumes:
+  leilaoauto-postgres-data:

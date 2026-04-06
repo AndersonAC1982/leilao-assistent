@@ -1,0 +1,39 @@
+.page {
+  background: #ffffff;
+  border: 1px solid #d5e0e8;
+  border-radius: 14px;
+  padding: 1rem;
+}
+
+.grid {
+  display: grid;
+  gap: 0.7rem;
+  max-width: 460px;
+}
+
+label {
+  display: grid;
+  gap: 0.35rem;
+  color: #375066;
+}
+
+input {
+  border: 1px solid #b8c8d5;
+  border-radius: 10px;
+  padding: 0.58rem 0.7rem;
+}
+
+button {
+  width: max-content;
+  border: none;
+  border-radius: 10px;
+  padding: 0.58rem 0.85rem;
+  font-weight: 700;
+  color: #ffffff;
+  background: linear-gradient(90deg, #ff7e2f, #f35d2e);
+}
+
+.todo {
+  margin-top: 0.7rem;
+  color: #55697d;
+}
