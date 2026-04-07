@@ -1,4 +1,5 @@
 using LeilaoAuto.Domain.Common;
+using LeilaoAuto.Domain.Enums;
 
 namespace LeilaoAuto.Domain.Entities;
 
@@ -8,26 +9,31 @@ public class User
     {
     }
 
-    public User(string email, string passwordHash)
+    public User(string email, string passwordHash, UserRole role = UserRole.User, PlanType plan = PlanType.Free)
     {
         Id = Guid.NewGuid();
         Email = email.Trim().ToLowerInvariant();
         PasswordHash = passwordHash;
-        CreatedAtUtc = DateTime.UtcNow;
+        Role = role;
+        Plan = plan;
+        CreatedAt = DateTime.UtcNow;
     }
 
     public Guid Id { get; private set; }
     public string Email { get; private set; } = string.Empty;
     public string PasswordHash { get; private set; } = string.Empty;
-    public DateTime CreatedAtUtc { get; private set; }
+    public UserRole Role { get; private set; }
+    public PlanType Plan { get; private set; }
+    public DateTime CreatedAt { get; private set; }
 
     public ICollection<MonitoredVehicle> MonitoredVehicles { get; private set; } = new List<MonitoredVehicle>();
+    public ICollection<Subscription> Subscriptions { get; private set; } = new List<Subscription>();
 
     public void AddMonitoredVehicle(MonitoredVehicle vehicle)
     {
         if (MonitoredVehicles.Count >= BusinessRules.MaxMonitoredVehiclesPerUser)
         {
-            throw new DomainRuleException($"Cada usuário pode monitorar até {BusinessRules.MaxMonitoredVehiclesPerUser} veículos.");
+            throw new DomainRuleException($"Each user can monitor up to {BusinessRules.MaxMonitoredVehiclesPerUser} vehicles.");
         }
 
         MonitoredVehicles.Add(vehicle);

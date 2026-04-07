@@ -15,16 +15,24 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.Property(user => user.Email)
             .HasColumnName("email")
-            .HasMaxLength(150)
+            .HasMaxLength(160)
             .IsRequired();
 
         builder.Property(user => user.PasswordHash)
             .HasColumnName("password_hash")
-            .HasMaxLength(200)
+            .HasMaxLength(255)
             .IsRequired();
 
-        builder.Property(user => user.CreatedAtUtc)
-            .HasColumnName("created_at_utc")
+        builder.Property(user => user.Role)
+            .HasColumnName("role")
+            .IsRequired();
+
+        builder.Property(user => user.Plan)
+            .HasColumnName("plan")
+            .IsRequired();
+
+        builder.Property(user => user.CreatedAt)
+            .HasColumnName("created_at")
             .IsRequired();
 
         builder.HasIndex(user => user.Email).IsUnique();
@@ -32,6 +40,11 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.HasMany(user => user.MonitoredVehicles)
             .WithOne(vehicle => vehicle.User)
             .HasForeignKey(vehicle => vehicle.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(user => user.Subscriptions)
+            .WithOne(subscription => subscription.User)
+            .HasForeignKey(subscription => subscription.UserId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

@@ -1,98 +1,95 @@
-# LEILAOAUTO - Fase 1
+# LEILAOAUTO - Fase 2
 
-Scaffolding inicial do produto LEILAOAUTO com backend em .NET 8 e frontend em Angular standalone.
+Fase 2 consolida o dominio central, persistencia e regras basicas do produto.
 
-## Estrutura do repositorio
+## Estrutura da solution
 
-### Backend (.NET 8)
+- `LeilaoAuto.Api`
+- `LeilaoAuto.Application`
+- `LeilaoAuto.Domain`
+- `LeilaoAuto.Infrastructure`
+- `LeilaoAuto.Workers`
+- `LeilaoAuto.Tests`
+- `leilaoauto-web`
 
-- LeilaoAuto.Api
-- LeilaoAuto.Application
-- LeilaoAuto.Domain
-- LeilaoAuto.Infrastructure
-- LeilaoAuto.Workers
-- LeilaoAuto.Tests
+## Dominio implementado
 
-### Frontend (Angular)
+Entidades:
 
-- leilaoauto-web
+- `User`
+- `Subscription`
+- `MonitoredVehicle`
+- `Lot`
+- `LotAnalytics`
+- `ConnectorExecutionLog`
 
-## Backend - Fase 1
+Enums:
 
-Entregue nesta fase:
+- `UserRole`
+- `PlanType`
+- `LotStatus`
+- `SubscriptionStatus`
 
-- ASP.NET Core Web API com Controllers
-- Swagger/OpenAPI
-- Serilog
-- PostgreSQL via appsettings + environment variables
-- EF Core DbContext inicial
-- Health check basico em `/health`
-- JWT configurado
-- CORS configurado
-- ProblemDetails e exception handler global
-- Integracao FIPE inicial (BrasilAPI) com fallback tecnico
+## Regras basicas implementadas
 
-### Observacoes de FIPE
+- Um usuario pode monitorar no maximo 4 veiculos.
+- Um lote com status `Confirmed` exige `LotUrl` valida.
+- Repositorio de lotes separa listagem de ativos e encerrados.
+- `Lot.NormalizedTitle` e gerado automaticamente para comparacoes futuras.
 
-- Configuracao em `Fipe` no `appsettings`.
-- Resolucao atual usa mapeamento `ModelCodeMappings` por modelo normalizado.
-- Quando nao houver mapeamento, entra fallback estimado.
-- TODO tecnico: substituir mapeamento estatico por catalogo persistente de codigos FIPE.
+## Persistencia EF Core
 
-## Frontend - Fase 1
+- Mapeamentos completos no projeto `LeilaoAuto.Infrastructure/Persistence/Configurations`.
+- Indices e constraints aplicados para chaves unicas, performance e validacao basica.
+- Migration inicial gerada:
+  - `InitialPhase2`
+  - pasta: `LeilaoAuto.Infrastructure/Persistence/Migrations`
 
-Entregue nesta fase:
+## Seed inicial
 
-- Angular CLI
-- Standalone components
-- Angular Router
-- Reactive Forms
-- Estrutura por features:
-  - core
-  - shared
-  - features/auth
-  - features/dashboard
-  - features/monitoring
-  - features/lots
-  - features/analytics
-  - features/billing
-  - features/settings
-- Layout principal com topo + menu lateral + area central de rotas
+Seed automatico contem:
 
-## Como rodar com Docker (Fase 1)
+- 1 usuario admin
+- 1 usuario comum
+- 4 veiculos monitorados de exemplo (2 por usuario)
+- lotes ativos/encerrados/confirmado de exemplo
+- analytics basicos por modelo
+- log inicial de execucao de conector
 
-Este compose sobe apenas API + PostgreSQL:
+Credenciais seed:
+
+- Admin: `admin@leilaoauto.local` / `Admin1234`
+- User: `demo@leilaoauto.local` / `Demo1234`
+
+## Repositorios base
+
+Interfaces adicionadas em `LeilaoAuto.Application/Abstractions/Persistence`:
+
+- `IBaseRepository<TEntity>`
+- `IUserEntityRepository`
+- `ISubscriptionRepository`
+- `IMonitoredVehicleRepository`
+- `ILotRepository`
+- `ILotAnalyticsRepository`
+- `IConnectorExecutionLogRepository`
+
+Implementacoes em `LeilaoAuto.Infrastructure/Persistence/Repositories`.
+
+## Execucao
+
+Subir API + Postgres via Docker:
 
 ```bash
 docker compose up --build
 ```
 
-Servicos:
+Endpoints uteis:
 
 - API: `http://localhost:8080`
 - Health: `http://localhost:8080/health`
-- Swagger: `http://localhost:8080/swagger` (Development)
-- PostgreSQL: `localhost:5432`
+- Swagger (Development): `http://localhost:8080/swagger`
 
-## Como rodar frontend local
+## Observacao desta fase
 
-```bash
-cd leilaoauto-web
-npm install
-npm start
-```
-
-Frontend local: `http://localhost:4200`
-
-## Usuario seed (desenvolvimento)
-
-- Email: `demo@leilaoauto.local`
-- Senha: `Demo1234`
-
-## Proximos TODOs tecnicos
-
-- Evoluir fluxo completo de autenticacao/autorizacao
-- Substituir `EnsureCreated` por migrations
-- Integrar catalogo FIPE oficial para matching robusto
-- Implementar regras densas de dominio nas proximas fases
-- Adicionar observabilidade (metrics/traces)
+- Conectores reais de importacao de leiloes ainda nao foram implementados.
+- Base de dominio/persistencia foi preparada para evolucao nas proximas fases.

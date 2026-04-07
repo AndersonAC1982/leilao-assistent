@@ -50,7 +50,7 @@ public class DomainRulesTests
     [Fact]
     public void ModelNormalizer_Should_Remove_Accents_And_Noise()
     {
-        var normalized = ModelNormalizer.Normalize(" Gol   1.6   MSI Álcool ");
+        var normalized = ModelNormalizer.Normalize(" Gol   1.6   MSI \u00C1lcool ");
         normalized.Should().Be("GOL 1 6 MSI ALCOOL");
     }
 
@@ -82,3 +82,4 @@ public class DomainRulesTests
         risk.Should().BeGreaterThan(0);
     }
 }
+

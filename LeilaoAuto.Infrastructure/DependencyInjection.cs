@@ -30,6 +30,12 @@ public static class DependencyInjection
 
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IAuctionLotRepository, AuctionLotRepository>();
+        services.AddScoped<IUserEntityRepository, UserEntityRepository>();
+        services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
+        services.AddScoped<IMonitoredVehicleRepository, MonitoredVehicleRepository>();
+        services.AddScoped<ILotRepository, LotRepository>();
+        services.AddScoped<ILotAnalyticsRepository, LotAnalyticsRepository>();
+        services.AddScoped<IConnectorExecutionLogRepository, ConnectorExecutionLogRepository>();
 
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
@@ -62,7 +68,7 @@ public static class DependencyInjection
     {
         using var scope = serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<LeilaoAutoDbContext>();
-        await dbContext.Database.EnsureCreatedAsync(cancellationToken);
+        await dbContext.Database.MigrateAsync(cancellationToken);
         await DatabaseSeeder.SeedAsync(dbContext, cancellationToken);
     }
 

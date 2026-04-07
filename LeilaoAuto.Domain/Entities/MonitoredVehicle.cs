@@ -11,6 +11,22 @@ public class MonitoredVehicle
 
     public MonitoredVehicle(
         Guid userId,
+        string brand,
+        string model,
+        int year,
+        VehicleType type,
+        string uf,
+        VehicleCondition vehicleState)
+    {
+        Id = Guid.NewGuid();
+        UserId = userId;
+        Update(brand, model, year, type, uf, vehicleState);
+        CreatedAt = DateTime.UtcNow;
+    }
+
+    // Compatibility constructor to preserve existing API/application contracts.
+    public MonitoredVehicle(
+        Guid userId,
         string make,
         string model,
         int? yearFrom,
@@ -18,26 +34,56 @@ public class MonitoredVehicle
         VehicleType? vehicleType,
         string? uf,
         VehicleCondition? vehicleCondition)
+        : this(
+            userId,
+            make,
+            model,
+            yearFrom ?? yearTo ?? DateTime.UtcNow.Year,
+            vehicleType ?? Enums.VehicleType.Other,
+            string.IsNullOrWhiteSpace(uf) ? "SP" : uf.Trim().ToUpperInvariant(),
+            vehicleCondition ?? Enums.VehicleCondition.Unknown)
     {
-        Id = Guid.NewGuid();
-        UserId = userId;
-        Update(make, model, yearFrom, yearTo, vehicleType, uf, vehicleCondition);
-        CreatedAtUtc = DateTime.UtcNow;
     }
 
     public Guid Id { get; private set; }
     public Guid UserId { get; private set; }
-    public string Make { get; private set; } = string.Empty;
+    public string Brand { get; private set; } = string.Empty;
     public string Model { get; private set; } = string.Empty;
+    public int Year { get; private set; }
+    public VehicleType Type { get; private set; }
+    public string Uf { get; private set; } = string.Empty;
+    public VehicleCondition VehicleState { get; private set; }
+    public DateTime CreatedAt { get; private set; }
+
     public string NormalizedModel { get; private set; } = string.Empty;
-    public int? YearFrom { get; private set; }
-    public int? YearTo { get; private set; }
-    public VehicleType? VehicleType { get; private set; }
-    public string? Uf { get; private set; }
-    public VehicleCondition? VehicleCondition { get; private set; }
-    public DateTime CreatedAtUtc { get; private set; }
     public User? User { get; private set; }
 
+    // Backward-compatible aliases for existing phase-1 contracts.
+    public string Make => Brand;
+    public int? YearFrom => Year;
+    public int? YearTo => Year;
+    public VehicleType? VehicleType => Type;
+    public VehicleCondition? VehicleCondition => VehicleState;
+    public DateTime CreatedAtUtc => CreatedAt;
+
+    public void Update(
+        string brand,
+        string model,
+        int year,
+        VehicleType type,
+        string uf,
+        VehicleCondition vehicleState)
+    {
+        Brand = brand.Trim();
+        Model = model.Trim();
+        Year = year;
+        Type = type;
+        Uf = uf.Trim().ToUpperInvariant();
+        VehicleState = vehicleState;
+        NormalizedModel = ModelNormalizer.Normalize(Model);
+    }
+
+    // Backward-compatible update overload.
     public void Update(
         string make,
         string model,
@@ -47,13 +93,12 @@ public class MonitoredVehicle
         string? uf,
         VehicleCondition? vehicleCondition)
     {
-        Make = make.Trim();
-        Model = model.Trim();
-        NormalizedModel = ModelNormalizer.Normalize(Model);
-        YearFrom = yearFrom;
-        YearTo = yearTo;
-        VehicleType = vehicleType;
-        Uf = string.IsNullOrWhiteSpace(uf) ? null : uf.Trim().ToUpperInvariant();
-        VehicleCondition = vehicleCondition;
+        Update(
+            make,
+            model,
+            yearFrom ?? yearTo ?? Year,
+            vehicleType ?? Type,
+            string.IsNullOrWhiteSpace(uf) ? Uf : uf.Trim().ToUpperInvariant(),
+            vehicleCondition ?? VehicleState);
     }
 }
