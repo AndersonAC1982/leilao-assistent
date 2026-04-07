@@ -8,6 +8,7 @@ export interface ModelAveragePrice {
 
 export interface Opportunity {
   lotId: string;
+  title: string;
   auctioneer: string;
   lotNumber: string;
   model: string;
@@ -16,7 +17,11 @@ export interface Opportunity {
   historicalAveragePrice: number;
   priceGap: number;
   priceGapPercent: number;
+  opportunityScore: number;
+  opportunityLabel: 'OPORTUNIDADE' | 'BOM_PRECO' | 'ACIMA_DA_MEDIA';
   riskScore: number;
+  damageLevel: string;
+  riskDecision: 'COMPRA_SEGURA' | 'OPORTUNIDADE_COM_RISCO' | 'ALTO_RISCO';
   lotUrl: string;
 }
 

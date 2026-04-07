@@ -31,4 +31,31 @@
       <p>Validation and business errors are returned as ProblemDetails.</p>
     </article>
   </div>
+
+  <section class="lots-panel">
+    <h3>Top oportunidades ativas</h3>
+
+    @if (loadingLots()) {
+      <p>Loading lot cards...</p>
+    } @else if (lotCards().length === 0) {
+      <p>No active lot cards available.</p>
+    } @else {
+      <div class="lot-grid">
+        @for (lot of lotCards(); track lot.id) {
+          <article class="lot-card">
+            <h4>{{ lot.title }}</h4>
+            <p><strong>Fonte:</strong> {{ lot.source }}</p>
+            <p><strong>Preco:</strong> {{ (lot.currentBid ?? lot.finalPrice ?? 0) | currency: 'BRL' : 'symbol' : '1.2-2' }}</p>
+            <p><strong>Status:</strong> {{ statusLabels[lot.status] }}</p>
+            <p><strong>Oportunidade:</strong> {{ lot.opportunityLabel }} ({{ lot.opportunityScore | number: '1.0-2' }})</p>
+            <p><strong>Risco:</strong> {{ lot.riskDecision }} ({{ lot.riskScore | number: '1.0-2' }})</p>
+
+            @if (hasValidLotUrl(lot.lotUrl)) {
+              <a [href]="lot.lotUrl" target="_blank" rel="noopener noreferrer">Abrir lote</a>
+            }
+          </article>
+        }
+      </div>
+    }
+  </section>
 </section>

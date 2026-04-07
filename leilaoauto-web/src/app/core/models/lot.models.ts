@@ -15,6 +15,9 @@ export interface ExactLotRequest {
 
 export interface Lot {
   id: string;
+  title: string;
+  description: string | null;
+  source: string;
   auctioneer: string;
   lotNumber: string;
   make: string;
@@ -26,9 +29,13 @@ export interface Lot {
   status: number;
   currentBid: number | null;
   finalPrice: number | null;
+  referenceAveragePrice: number | null;
   lotUrl: string;
   opportunityScore: number;
+  opportunityLabel: 'OPORTUNIDADE' | 'BOM_PRECO' | 'ACIMA_DA_MEDIA';
   riskScore: number;
+  damageLevel: string;
+  riskDecision: 'COMPRA_SEGURA' | 'OPORTUNIDADE_COM_RISCO' | 'ALTO_RISCO';
   updatedAtUtc: string;
 }
 

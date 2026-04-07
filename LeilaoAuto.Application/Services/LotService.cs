@@ -16,6 +16,8 @@ public class LotService : ILotService
     private readonly IFipePriceProvider _fipePriceProvider;
     private readonly IBillingGateway _billingGateway;
     private readonly IAlertPublisher _alertPublisher;
+    private readonly IOpportunityScoringService _opportunityScoringService;
+    private readonly IRiskScoringService _riskScoringService;
 
     public LotService(
         IAuctionLotRepository auctionLotRepository,
@@ -23,7 +25,9 @@ public class LotService : ILotService
         IAuctionProviderClient auctionProviderClient,
         IFipePriceProvider fipePriceProvider,
         IBillingGateway billingGateway,
-        IAlertPublisher alertPublisher)
+        IAlertPublisher alertPublisher,
+        IOpportunityScoringService opportunityScoringService,
+        IRiskScoringService riskScoringService)
     {
         _auctionLotRepository = auctionLotRepository;
         _userRepository = userRepository;
@@ -31,6 +35,8 @@ public class LotService : ILotService
         _fipePriceProvider = fipePriceProvider;
         _billingGateway = billingGateway;
         _alertPublisher = alertPublisher;
+        _opportunityScoringService = opportunityScoringService;
+        _riskScoringService = riskScoringService;
     }
 
     public async Task<IReadOnlyList<LotDto>> SearchActiveAsync(Guid userId, LotSearchFilterRequest filter, CancellationToken cancellationToken)
@@ -186,13 +192,21 @@ public class LotService : ILotService
         {
             averages.TryGetValue(lot.NormalizedModel, out var averageValue);
             var average = averageValue > 0 ? averageValue : (decimal?)null;
-            var fipe = await _fipePriceProvider.GetPriceByNormalizedModelAsync(lot.NormalizedModel, lot.Year, cancellationToken);
+            if (!average.HasValue)
+            {
+                average = await _fipePriceProvider.GetPriceByNormalizedModelAsync(lot.NormalizedModel, lot.Year, cancellationToken);
+            }
 
-            var opportunityScore = LotScoring.CalculateOpportunityScore(lot, average, fipe);
-            var riskScore = LotScoring.CalculateRiskScore(lot);
+            var opportunity = _opportunityScoringService.Score(lot.CurrentBid, lot.FinalPrice, average);
+            var title = $"{lot.Make} {lot.Model} {lot.Year}".Trim();
+            var description = BuildDescriptionForRisk(lot);
+            var risk = _riskScoringService.Score(title, description, lot.VehicleCondition, lot.Year, lot.HasValidLotUrl());
 
             var dto = new LotDto(
                 lot.Id,
+                title,
+                description,
+                lot.Auctioneer,
                 lot.Auctioneer,
                 lot.LotNumber,
                 lot.Make,
@@ -204,14 +218,32 @@ public class LotService : ILotService
                 lot.Status,
                 lot.CurrentBid,
                 lot.FinalPrice,
+                opportunity.HistoricalAveragePrice,
                 lot.LotUrl,
-                opportunityScore,
-                riskScore,
+                opportunity.Score,
+                opportunity.Label,
+                risk.RiskScore,
+                risk.DamageLevel,
+                risk.Decision,
                 lot.UpdatedAtUtc);
 
             results.Add(dto);
         }
 
         return results;
+    }
+
+    private static string BuildDescriptionForRisk(AuctionLot lot)
+    {
+        var conditionText = lot.VehicleCondition switch
+        {
+            Domain.Enums.VehicleCondition.Damaged => "sinistro media monta",
+            Domain.Enums.VehicleCondition.Flooded => "enchente",
+            Domain.Enums.VehicleCondition.Scrap => "sucata",
+            Domain.Enums.VehicleCondition.TheftRecovery => "recuperavel",
+            _ => "sem indicio relevante"
+        };
+
+        return $"{conditionText}. Lote {lot.LotNumber} em {lot.Uf}.";
     }
 }

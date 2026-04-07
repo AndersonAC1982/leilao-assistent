@@ -2,7 +2,7 @@ using LeilaoAuto.Application.Abstractions.Persistence;
 using LeilaoAuto.Application.Abstractions.Services;
 using LeilaoAuto.Application.Contracts.Analytics;
 using LeilaoAuto.Domain.Entities;
-using LeilaoAuto.Domain.Services;
+using LeilaoAuto.Domain.Enums;
 
 namespace LeilaoAuto.Application.Services;
 
@@ -14,17 +14,23 @@ public class AnalyticsService : IAnalyticsService
     private readonly IAuctionLotRepository _auctionLotRepository;
     private readonly IModelNormalizationService _modelNormalizationService;
     private readonly ILotAnalyticsComputationService _lotAnalyticsComputationService;
+    private readonly IOpportunityScoringService _opportunityScoringService;
+    private readonly IRiskScoringService _riskScoringService;
 
     public AnalyticsService(
         IUserRepository userRepository,
         IAuctionLotRepository auctionLotRepository,
         IModelNormalizationService modelNormalizationService,
-        ILotAnalyticsComputationService lotAnalyticsComputationService)
+        ILotAnalyticsComputationService lotAnalyticsComputationService,
+        IOpportunityScoringService opportunityScoringService,
+        IRiskScoringService riskScoringService)
     {
         _userRepository = userRepository;
         _auctionLotRepository = auctionLotRepository;
         _modelNormalizationService = modelNormalizationService;
         _lotAnalyticsComputationService = lotAnalyticsComputationService;
+        _opportunityScoringService = opportunityScoringService;
+        _riskScoringService = riskScoringService;
     }
 
     public async Task<IReadOnlyList<ModelAveragePriceDto>> GetAveragePriceAsync(
@@ -81,27 +87,43 @@ public class AnalyticsService : IAnalyticsService
             }
 
             var historicalAverage = FindBestAverage(averages, comparableModel);
-            if (historicalAverage is null || lot.CurrentBid.Value >= historicalAverage.AveragePrice)
+            if (historicalAverage is null)
             {
                 continue;
             }
 
-            var priceGap = decimal.Round(historicalAverage.AveragePrice - lot.CurrentBid.Value, 2);
+            var opportunity = _opportunityScoringService.Score(lot.CurrentBid, lot.FinalPrice, historicalAverage.AveragePrice);
+            if (opportunity.Label == "ACIMA_DA_MEDIA")
+            {
+                continue;
+            }
+
+            var title = $"{lot.Make} {lot.Model} {lot.Year}".Trim();
+            var description = BuildDescriptionForRisk(lot);
+            var risk = _riskScoringService.Score(title, description, lot.VehicleCondition, lot.Year, lot.HasValidLotUrl());
+
+            var currentPrice = lot.CurrentBid.Value;
+            var priceGap = decimal.Round(historicalAverage.AveragePrice - currentPrice, 2);
             var priceGapPercent = historicalAverage.AveragePrice <= 0
                 ? 0
                 : decimal.Round((priceGap / historicalAverage.AveragePrice) * 100m, 2);
 
             opportunities.Add(new OpportunityDto(
                 lot.Id,
+                title,
                 lot.Auctioneer,
                 lot.LotNumber,
                 $"{lot.Make} {lot.Model}".Trim(),
                 comparableModel,
-                lot.CurrentBid.Value,
+                currentPrice,
                 historicalAverage.AveragePrice,
                 priceGap,
                 priceGapPercent,
-                LotScoring.CalculateRiskScore(lot),
+                opportunity.Score,
+                opportunity.Label,
+                risk.RiskScore,
+                risk.DamageLevel,
+                risk.Decision,
                 lot.LotUrl));
         }
 
@@ -124,10 +146,17 @@ public class AnalyticsService : IAnalyticsService
 
         var normalizedFilter = _modelNormalizationService.NormalizeComparable(modelFilter);
         var lotRisks = context.ActiveLots
-            .Select(lot => new
+            .Select(lot =>
             {
-                ComparableModel = _modelNormalizationService.NormalizeComparable(lot.Model, lot.Make),
-                Score = LotScoring.CalculateRiskScore(lot)
+                var title = $"{lot.Make} {lot.Model} {lot.Year}".Trim();
+                var description = BuildDescriptionForRisk(lot);
+                var risk = _riskScoringService.Score(title, description, lot.VehicleCondition, lot.Year, lot.HasValidLotUrl());
+
+                return new
+                {
+                    ComparableModel = _modelNormalizationService.NormalizeComparable(lot.Model, lot.Make),
+                    Score = risk.RiskScore
+                };
             })
             .Where(item => MatchesModelFilter(item.ComparableModel, normalizedFilter))
             .ToList();
@@ -253,6 +282,20 @@ public class AnalyticsService : IAnalyticsService
         }
 
         return _modelNormalizationService.IsSimilar(comparableModel, normalizedFilter, MatchThreshold);
+    }
+
+    private static string BuildDescriptionForRisk(AuctionLot lot)
+    {
+        var conditionText = lot.VehicleCondition switch
+        {
+            VehicleCondition.Damaged => "sinistro media monta",
+            VehicleCondition.Flooded => "enchente",
+            VehicleCondition.Scrap => "sucata",
+            VehicleCondition.TheftRecovery => "recuperavel",
+            _ => "sem indicio relevante"
+        };
+
+        return $"{conditionText}. Lote {lot.LotNumber} em {lot.Uf}.";
     }
 
     private sealed record AnalyticsContext(IReadOnlyList<AuctionLot> ActiveLots, IReadOnlyList<AuctionLot> ClosedLots)

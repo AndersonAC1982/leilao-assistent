@@ -1,83 +1,104 @@
-# LEILAOAUTO - Fase 4
+# LEILAOAUTO - Fase 5
 
-Fase 4 implementa normalizacao robusta de modelos, matching, agrupamento e analytics com endpoints dedicados e tela Angular funcional.
+Fase 5 implementa score de oportunidade e score de risco, incorporados ao retorno de lotes e analytics.
 
-## Estrutura da solution
+## Backend - scoring
 
-- `LeilaoAuto.Api`
-- `LeilaoAuto.Application`
-- `LeilaoAuto.Domain`
-- `LeilaoAuto.Infrastructure`
-- `LeilaoAuto.Workers`
-- `LeilaoAuto.Tests`
-- `leilaoauto-web`
+### Score de oportunidade
 
-## Backend - Normalizacao e matching
+Servico: `OpportunityScoringService`
 
-Servico robusto de normalizacao de modelo com regras:
+Compara:
 
-- remove acentos
-- ignora caixa
-- remove caracteres especiais
-- consolida espacos
-- remove marca redundante do inicio
-- gera versao comparavel para agrupamento e matching
-- separa blocos letra/numero (`CG160` -> `CG 160`)
-- remove ano isolado (`2022`) na versao comparavel
+- `currentPrice` (ou `finalPrice` quando necessario)
+- media historica do modelo
 
-Exemplos equivalentes cobertos em testes:
+Saida:
 
-- `Honda CG 160 Start`
-- `CG160 START`
-- `Honda CG 160 2022`
+- `opportunityScore` (0 a 100)
+- `opportunityLabel`:
+  - `OPORTUNIDADE`
+  - `BOM_PRECO`
+  - `ACIMA_DA_MEDIA`
 
-## Backend - Servicos de analytics
+### Score de risco
 
-Novos servicos na camada Application:
+Servico: `RiskScoringService`
 
-- `IModelNormalizationService` / `ModelNormalizationService`
-- `ILotAnalyticsComputationService` / `LotAnalyticsComputationService`
-- `IAnalyticsService` / `AnalyticsService`
+Analisa titulo e descricao do lote com palavras-chave criticas:
 
-Capacidades:
+- sinistro
+- recuperavel / recuperavel
+- sucata
+- enchente
+- sem motor
+- grande monta
+- media monta
+- pequena monta
 
-- normalizar modelo
-- comparar similaridade simples
-- agrupar lotes por modelo normalizado/comparavel
-- calcular media, menor preco, maior preco e quantidade
+Saida:
 
-## Endpoints de analytics
+- `riskScore` (0 a 100)
+- `damageLevel`
+- `decision`:
+  - `COMPRA_SEGURA`
+  - `OPORTUNIDADE_COM_RISCO`
+  - `ALTO_RISCO`
 
-- `GET /api/analytics/average-price`
-  - filtro opcional: `?model=`
-- `GET /api/analytics/opportunities`
-  - filtro opcional: `?model=`
-  - lista lotes ativos com preco atual abaixo da media historica
-- `GET /api/analytics/risk-summary`
-  - filtro opcional: `?model=`
+## Backend - endpoints ajustados
 
-## Frontend Angular - Tela Analytics
+`/api/lots/*` e `/api/analytics/*` retornam scores com labels/decisao.
 
-Tela `analytics` conectada aos novos endpoints com:
+Novos campos relevantes de lotes:
 
-- cards de media por modelo
-- faixa de preco (min-max)
-- resumo de oportunidades
-- resumo de risco
-- filtro por modelo
+- `title`
+- `source`
+- `referenceAveragePrice`
+- `opportunityScore`
+- `opportunityLabel`
+- `riskScore`
+- `damageLevel`
+- `riskDecision`
+
+## Frontend Angular
+
+### Results (Lots)
+
+Tela de resultados agora mostra cards com:
+
+- titulo
+- preco
+- status
+- fonte
+- score de oportunidade
+- score de risco
+- botao **Abrir lote**
+
+Regra aplicada:
+
+- botao so renderiza com `lotUrl` valida.
+
+### Dashboard
+
+Cards de lotes ativos exibem os mesmos indicadores de score e o botao **Abrir lote** quando `lotUrl` e valida.
 
 ## Testes unitarios
 
-Cobertura adicionada para:
+Cobertura de Fase 5 adicionada para:
 
-- normalizador
-- regra de agrupamento
-- calculo de media
-- limite de 4 veiculos monitorados
+- score de oportunidade
+- score de risco
+- deteccao de palavras-chave criticas
+
+Arquivo principal:
+
+- `LeilaoAuto.Tests/ScoringPhase5Tests.cs`
+
+Tambem permanece coberto o limite de 4 veiculos monitorados.
 
 ## Execucao
 
-Subir API + Postgres via Docker:
+Subir API + Postgres:
 
 ```bash
 docker compose up --build
@@ -91,15 +112,8 @@ npm install
 npm start
 ```
 
-Endpoints uteis:
+## Validacao da fase
 
-- API: `http://localhost:8080`
-- Health: `http://localhost:8080/health`
-- Swagger (Development): `http://localhost:8080/swagger`
-- Frontend: `http://localhost:4200`
-
-## Proximas fases
-
-- conectores reais de leiloeiros
-- ranking de oportunidade mais avancado
-- alertas com regras configuraveis por usuario
+- `dotnet build LeilaoAuto.sln` OK
+- `dotnet test LeilaoAuto.Tests/LeilaoAuto.Tests.csproj` OK
+- `npm run build` em `leilaoauto-web` OK

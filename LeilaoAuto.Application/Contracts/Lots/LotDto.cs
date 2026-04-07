@@ -4,6 +4,9 @@ namespace LeilaoAuto.Application.Contracts.Lots;
 
 public sealed record LotDto(
     Guid Id,
+    string Title,
+    string? Description,
+    string Source,
     string Auctioneer,
     string LotNumber,
     string Make,
@@ -15,7 +18,11 @@ public sealed record LotDto(
     LotStatus Status,
     decimal? CurrentBid,
     decimal? FinalPrice,
+    decimal? ReferenceAveragePrice,
     string LotUrl,
     decimal OpportunityScore,
+    string OpportunityLabel,
     decimal RiskScore,
+    string DamageLevel,
+    string RiskDecision,
     DateTimeOffset UpdatedAtUtc);

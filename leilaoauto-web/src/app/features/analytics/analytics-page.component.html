@@ -71,7 +71,9 @@
             <p><strong>Current price:</strong> {{ item.currentPrice | currency: 'BRL' : 'symbol' : '1.2-2' }}</p>
             <p><strong>Historical average:</strong> {{ item.historicalAveragePrice | currency: 'BRL' : 'symbol' : '1.2-2' }}</p>
             <p><strong>Gap:</strong> {{ item.priceGap | currency: 'BRL' : 'symbol' : '1.2-2' }} ({{ item.priceGapPercent | number: '1.0-2' }}%)</p>
-            <p><strong>Risk score:</strong> {{ item.riskScore | number: '1.0-2' }}</p>
+            <p><strong>Opportunity:</strong> {{ item.opportunityLabel }} ({{ item.opportunityScore | number: '1.0-2' }})</p>
+            <p><strong>Risk score:</strong> {{ item.riskDecision }} - {{ item.riskScore | number: '1.0-2' }}</p>
+            <p><strong>Damage level:</strong> {{ item.damageLevel }}</p>
             <a [href]="item.lotUrl" target="_blank" rel="noopener noreferrer">Open exact lot URL</a>
           </article>
         }

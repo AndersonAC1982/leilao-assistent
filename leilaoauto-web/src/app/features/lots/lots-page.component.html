@@ -1,17 +1,52 @@
 <section class="page">
-  <h2>Lots</h2>
-  <p>Initial page for active lots, closed history and exact lot search.</p>
+  <header class="heading">
+    <h2>Resultados de Lotes</h2>
+    <p>Veja oportunidades com score de oportunidade e risco.</p>
+  </header>
 
-  <form [formGroup]="filtersForm" class="grid">
-    <input formControlName="make" placeholder="Make" />
-    <input formControlName="model" placeholder="Model" />
-    <input type="number" formControlName="yearFrom" placeholder="Year from" />
-    <input type="number" formControlName="yearTo" placeholder="Year to" />
-    <input formControlName="vehicleType" placeholder="Vehicle type" />
+  <form [formGroup]="filtersForm" class="filters" (ngSubmit)="applyFilters()">
+    <input formControlName="make" placeholder="Marca" />
+    <input formControlName="model" placeholder="Modelo" />
+    <input type="number" formControlName="yearFrom" placeholder="Ano de" />
+    <input type="number" formControlName="yearTo" placeholder="Ano ate" />
+    <input type="number" formControlName="vehicleType" placeholder="Tipo (id)" />
     <input formControlName="uf" maxlength="2" placeholder="UF" />
-    <button type="button" (click)="applyFilters()">Apply filters</button>
+    <input type="number" formControlName="vehicleCondition" placeholder="Estado (id)" />
+    <button type="submit" [disabled]="loading()">Buscar</button>
+    <button type="button" class="secondary" (click)="clearFilters()" [disabled]="loading()">Limpar</button>
   </form>
 
-  <p class="preview">{{ filterPreview() }}</p>
-  <p class="todo">TODO: connect active lots, history and exact-lot endpoints.</p>
+  @if (loading()) {
+    <p>Carregando lotes...</p>
+  }
+
+  @if (errorMessage()) {
+    <p class="error">{{ errorMessage() }}</p>
+  }
+
+  @if (!loading() && lots().length === 0) {
+    <p>Nenhum lote encontrado para os filtros informados.</p>
+  }
+
+  <div class="lot-grid">
+    @for (lot of lots(); track trackByLot($index, lot)) {
+      <article class="lot-card">
+        <h3>{{ lot.title }}</h3>
+        <p><strong>Fonte:</strong> {{ lot.source }}</p>
+        <p><strong>Status:</strong> {{ statusLabels[lot.status] }}</p>
+        <p><strong>Preco:</strong> {{ (lot.currentBid ?? lot.finalPrice ?? 0) | currency: 'BRL' : 'symbol' : '1.2-2' }}</p>
+
+        <div class="score-row">
+          <span class="pill opportunity">{{ lot.opportunityLabel }} - {{ lot.opportunityScore | number: '1.0-2' }}</span>
+          <span class="pill risk">{{ lot.riskDecision }} - {{ lot.riskScore | number: '1.0-2' }}</span>
+        </div>
+
+        <p><strong>Dano:</strong> {{ lot.damageLevel }}</p>
+
+        @if (hasValidLotUrl(lot.lotUrl)) {
+          <a class="open-lot" [href]="lot.lotUrl" target="_blank" rel="noopener noreferrer">Abrir lote</a>
+        }
+      </article>
+    }
+  </div>
 </section>
