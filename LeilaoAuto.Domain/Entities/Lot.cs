@@ -86,6 +86,6 @@ public class Lot
     public void SetTitle(string title)
     {
         Title = title.Trim();
-        NormalizedTitle = ModelNormalizer.Normalize(Title);
+        NormalizedTitle = ModelNormalizer.NormalizeComparable(Title);
     }
 }

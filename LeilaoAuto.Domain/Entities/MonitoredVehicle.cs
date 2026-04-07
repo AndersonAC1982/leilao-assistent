@@ -80,7 +80,7 @@ public class MonitoredVehicle
         Type = type;
         Uf = uf.Trim().ToUpperInvariant();
         VehicleState = vehicleState;
-        NormalizedModel = ModelNormalizer.Normalize(Model);
+        NormalizedModel = ModelNormalizer.NormalizeComparable(Model, Brand);
     }
 
     // Backward-compatible update overload.

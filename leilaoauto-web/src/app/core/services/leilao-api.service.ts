@@ -7,6 +7,11 @@ import {
   MonitoredVehicle,
   UpdateMonitoredVehicleRequest
 } from '../models/monitoring.models';
+import {
+  ModelAveragePrice,
+  Opportunity,
+  RiskSummary
+} from '../models/analytics.models';
 import { ExactLotRequest, Lot, LotSearchFilterRequest, ModelAverage } from '../models/lot.models';
 
 @Injectable({ providedIn: 'root' })
@@ -47,6 +52,24 @@ export class LeilaoApiService {
 
   getModelAverages(): Observable<ModelAverage[]> {
     return this.http.get<ModelAverage[]>(`${this.apiBaseUrl}/lots/averages`);
+  }
+
+  getAveragePrice(model?: string): Observable<ModelAveragePrice[]> {
+    return this.http.get<ModelAveragePrice[]>(`${this.apiBaseUrl}/analytics/average-price`, {
+      params: this.toHttpParams({ model })
+    });
+  }
+
+  getOpportunities(model?: string): Observable<Opportunity[]> {
+    return this.http.get<Opportunity[]>(`${this.apiBaseUrl}/analytics/opportunities`, {
+      params: this.toHttpParams({ model })
+    });
+  }
+
+  getRiskSummary(model?: string): Observable<RiskSummary> {
+    return this.http.get<RiskSummary>(`${this.apiBaseUrl}/analytics/risk-summary`, {
+      params: this.toHttpParams({ model })
+    });
   }
 
   syncLots(): Observable<{ synced: number }> {

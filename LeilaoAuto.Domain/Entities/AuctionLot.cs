@@ -39,7 +39,7 @@ public class AuctionLot
         LotNumber = lotNumber.Trim();
         Make = make.Trim();
         Model = model.Trim();
-        NormalizedModel = ModelNormalizer.Normalize(Model);
+        NormalizedModel = ModelNormalizer.NormalizeComparable(Model, Make);
         Year = year;
         VehicleType = vehicleType;
         Uf = uf.Trim().ToUpperInvariant();
@@ -108,7 +108,7 @@ public class AuctionLot
         LotNumber = lotNumber.Trim();
         Make = make.Trim();
         Model = model.Trim();
-        NormalizedModel = ModelNormalizer.Normalize(model);
+        NormalizedModel = ModelNormalizer.NormalizeComparable(Model, Make);
         Year = year;
         VehicleType = vehicleType;
         Uf = uf.Trim().ToUpperInvariant();

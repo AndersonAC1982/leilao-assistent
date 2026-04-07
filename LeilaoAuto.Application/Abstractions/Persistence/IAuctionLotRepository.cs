@@ -5,6 +5,8 @@ namespace LeilaoAuto.Application.Abstractions.Persistence;
 
 public interface IAuctionLotRepository
 {
+    Task<IReadOnlyList<AuctionLot>> GetActiveLotsAsync(CancellationToken cancellationToken);
+    Task<IReadOnlyList<AuctionLot>> GetClosedLotsAsync(CancellationToken cancellationToken);
     Task<IReadOnlyList<AuctionLot>> SearchActiveAsync(LotSearchFilterRequest filter, CancellationToken cancellationToken);
     Task<AuctionLot?> FindExactActiveAsync(string auctioneer, string lotNumber, CancellationToken cancellationToken);
     Task<IReadOnlyList<AuctionLot>> GetClosedByNormalizedModelsAsync(

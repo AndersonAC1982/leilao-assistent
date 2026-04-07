@@ -16,6 +16,30 @@ public class AuctionLotRepository : IAuctionLotRepository
         _dbContext = dbContext;
     }
 
+    public async Task<IReadOnlyList<AuctionLot>> GetActiveLotsAsync(CancellationToken cancellationToken)
+    {
+        var lots = await _dbContext.AuctionLots
+            .AsNoTracking()
+            .Where(lot => lot.Status == LotStatus.Active)
+            .OrderByDescending(lot => lot.UpdatedAtUtc)
+            .Take(2000)
+            .ToListAsync(cancellationToken);
+
+        return lots.Where(lot => lot.HasValidLotUrl()).ToList();
+    }
+
+    public async Task<IReadOnlyList<AuctionLot>> GetClosedLotsAsync(CancellationToken cancellationToken)
+    {
+        var lots = await _dbContext.AuctionLots
+            .AsNoTracking()
+            .Where(lot => lot.Status == LotStatus.Closed)
+            .OrderByDescending(lot => lot.EndsAt)
+            .Take(5000)
+            .ToListAsync(cancellationToken);
+
+        return lots.Where(lot => lot.HasValidLotUrl()).ToList();
+    }
+
     public async Task<IReadOnlyList<AuctionLot>> SearchActiveAsync(LotSearchFilterRequest filter, CancellationToken cancellationToken)
     {
         var query = _dbContext.AuctionLots

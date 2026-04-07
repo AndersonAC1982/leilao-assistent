@@ -1,10 +1,105 @@
 <section class="page">
-  <h2>Analytics</h2>
-  <p>Initial area for opportunity and risk analytics.</p>
+  <header class="heading">
+    <h2>Analytics</h2>
+    <p>Model normalization, opportunities and risk summary from monitored lots.</p>
+  </header>
 
-  <ul>
-    <li>TODO: model-level averages chart</li>
-    <li>TODO: opportunity and risk trend chart</li>
-    <li>TODO: export dashboard data</li>
-  </ul>
+  <form [formGroup]="form" class="filter-bar" (ngSubmit)="applyFilter()">
+    <input formControlName="model" placeholder="Filter by model (optional)" />
+    <button type="submit" [disabled]="loading()">Apply</button>
+    <button type="button" class="secondary" (click)="clearFilter()" [disabled]="loading()">Clear</button>
+  </form>
+
+  @if (loading()) {
+    <p>Loading analytics...</p>
+  }
+
+  @if (errorMessage()) {
+    <p class="error">{{ errorMessage() }}</p>
+  }
+
+  <section class="cards">
+    <article class="card summary-card">
+      <h3>Opportunity summary</h3>
+      <p class="metric">{{ opportunities().length }}</p>
+      <small>lots below historical average</small>
+    </article>
+
+    <article class="card summary-card">
+      <h3>Active risk average</h3>
+      <p class="metric">{{ riskSummary()?.averageRiskScore ?? 0 | number: '1.0-2' }}</p>
+      <small>score from 0 to 100</small>
+    </article>
+
+    <article class="card summary-card">
+      <h3>Models with history</h3>
+      <p class="metric">{{ averages().length }}</p>
+      <small>groups with closed-lot prices</small>
+    </article>
+  </section>
+
+  <section class="panel">
+    <h3>Average price by normalized model</h3>
+
+    @if (averages().length === 0) {
+      <p>No model averages found for current filter.</p>
+    } @else {
+      <div class="average-grid">
+        @for (item of averages(); track item.comparableModel) {
+          <article class="card average-card">
+            <h4>{{ item.comparableModel }}</h4>
+            <p><strong>Average:</strong> {{ item.averagePrice | currency: 'BRL' : 'symbol' : '1.2-2' }}</p>
+            <p><strong>Range:</strong> {{ item.minPrice | currency: 'BRL' : 'symbol' : '1.2-2' }} - {{ item.maxPrice | currency: 'BRL' : 'symbol' : '1.2-2' }}</p>
+            <p><strong>Samples:</strong> {{ item.quantity }}</p>
+          </article>
+        }
+      </div>
+    }
+  </section>
+
+  <section class="panel">
+    <h3>Opportunities below historical average</h3>
+
+    @if (opportunities().length === 0) {
+      <p>No opportunities found.</p>
+    } @else {
+      <div class="opportunity-list">
+        @for (item of opportunities(); track item.lotId) {
+          <article class="card opportunity-card">
+            <h4>{{ item.model }}</h4>
+            <p><strong>Auctioneer/Lot:</strong> {{ item.auctioneer }} - {{ item.lotNumber }}</p>
+            <p><strong>Current price:</strong> {{ item.currentPrice | currency: 'BRL' : 'symbol' : '1.2-2' }}</p>
+            <p><strong>Historical average:</strong> {{ item.historicalAveragePrice | currency: 'BRL' : 'symbol' : '1.2-2' }}</p>
+            <p><strong>Gap:</strong> {{ item.priceGap | currency: 'BRL' : 'symbol' : '1.2-2' }} ({{ item.priceGapPercent | number: '1.0-2' }}%)</p>
+            <p><strong>Risk score:</strong> {{ item.riskScore | number: '1.0-2' }}</p>
+            <a [href]="item.lotUrl" target="_blank" rel="noopener noreferrer">Open exact lot URL</a>
+          </article>
+        }
+      </div>
+    }
+  </section>
+
+  <section class="panel">
+    <h3>Risk summary</h3>
+
+    @if (riskSummary(); as risk) {
+      <div class="risk-grid">
+        <p><strong>Total active lots:</strong> {{ risk.totalActiveLots }}</p>
+        <p><strong>Low risk:</strong> {{ risk.lowRiskCount }}</p>
+        <p><strong>Medium risk:</strong> {{ risk.mediumRiskCount }}</p>
+        <p><strong>High risk:</strong> {{ risk.highRiskCount }}</p>
+      </div>
+
+      @if (risk.topRiskModels.length > 0) {
+        <h4>Top risk models</h4>
+        <ul>
+          @for (item of risk.topRiskModels; track item.comparableModel) {
+            <li>{{ item.comparableModel }} - avg {{ item.averageRiskScore | number: '1.0-2' }} ({{ item.quantity }} lots)</li>
+          }
+        </ul>
+      }
+    } @else {
+      <p>No risk summary available.</p>
+    }
+  </section>
 </section>

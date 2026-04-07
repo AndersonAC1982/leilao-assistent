@@ -1,6 +1,6 @@
-# LEILAOAUTO - Fase 3
+# LEILAOAUTO - Fase 4
 
-Fase 3 implementa autenticacao, usuario logado (`/api/auth/me`) e gestao de veiculos monitorados com CRUD completo.
+Fase 4 implementa normalizacao robusta de modelos, matching, agrupamento e analytics com endpoints dedicados e tela Angular funcional.
 
 ## Estrutura da solution
 
@@ -12,49 +12,68 @@ Fase 3 implementa autenticacao, usuario logado (`/api/auth/me`) e gestao de veic
 - `LeilaoAuto.Tests`
 - `leilaoauto-web`
 
-## Backend - Endpoints de autenticacao
+## Backend - Normalizacao e matching
 
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `GET /api/auth/me` (autenticado)
+Servico robusto de normalizacao de modelo com regras:
 
-## Backend - Endpoints de monitoramento
+- remove acentos
+- ignora caixa
+- remove caracteres especiais
+- consolida espacos
+- remove marca redundante do inicio
+- gera versao comparavel para agrupamento e matching
+- separa blocos letra/numero (`CG160` -> `CG 160`)
+- remove ano isolado (`2022`) na versao comparavel
 
-- `GET /api/monitoring`
-- `POST /api/monitoring`
-- `PUT /api/monitoring/{id}`
-- `DELETE /api/monitoring/{id}`
+Exemplos equivalentes cobertos em testes:
 
-## Regras aplicadas
+- `Honda CG 160 Start`
+- `CG160 START`
+- `Honda CG 160 2022`
 
-- Usuario autenticado gerencia apenas os proprios veiculos.
-- Limite de 4 veiculos monitorados por usuario.
-- Validacao de campos obrigatorios com FluentValidation.
-- Erros retornados em ProblemDetails (incluindo conflito, validacao e regras de dominio).
+## Backend - Servicos de analytics
 
-## Frontend Angular
+Novos servicos na camada Application:
 
-Telas entregues:
+- `IModelNormalizationService` / `ModelNormalizationService`
+- `ILotAnalyticsComputationService` / `LotAnalyticsComputationService`
+- `IAnalyticsService` / `AnalyticsService`
 
-- Login
-- Cadastro
-- Dashboard inicial
-- Monitoramento
+Capacidades:
 
-Recursos de frontend ativos:
+- normalizar modelo
+- comparar similaridade simples
+- agrupar lotes por modelo normalizado/comparavel
+- calcular media, menor preco, maior preco e quantidade
 
-- `AuthService` com estado simples por `signals`.
-- `JWT interceptor` para chamadas autenticadas.
-- `auth guard` para rotas privadas.
-- Formularios com Reactive Forms.
-- Tela de monitoramento com listagem e CRUD dos veiculos do usuario.
+## Endpoints de analytics
 
-## Seed inicial
+- `GET /api/analytics/average-price`
+  - filtro opcional: `?model=`
+- `GET /api/analytics/opportunities`
+  - filtro opcional: `?model=`
+  - lista lotes ativos com preco atual abaixo da media historica
+- `GET /api/analytics/risk-summary`
+  - filtro opcional: `?model=`
 
-Credenciais seed:
+## Frontend Angular - Tela Analytics
 
-- Admin: `admin@leilaoauto.local` / `Admin1234`
-- User: `demo@leilaoauto.local` / `Demo1234`
+Tela `analytics` conectada aos novos endpoints com:
+
+- cards de media por modelo
+- faixa de preco (min-max)
+- resumo de oportunidades
+- resumo de risco
+- filtro por modelo
+
+## Testes unitarios
+
+Cobertura adicionada para:
+
+- normalizador
+- regra de agrupamento
+- calculo de media
+- limite de 4 veiculos monitorados
 
 ## Execucao
 
@@ -81,6 +100,6 @@ Endpoints uteis:
 
 ## Proximas fases
 
-- Conectores reais de leiloeiros.
-- Matching avancado de lotes.
-- Score de oportunidade e risco com dados reais.
+- conectores reais de leiloeiros
+- ranking de oportunidade mais avancado
+- alertas com regras configuraveis por usuario
