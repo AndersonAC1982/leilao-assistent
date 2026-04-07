@@ -1,64 +1,67 @@
-# LEILAOAUTO - Fase 6
+# LEILAOAUTO - Fase 7
 
-Fase 6 implementa fluxo completo de listagem de lotes com separacao entre ativos e encerrados, incluindo busca por filtros e tela de resultados com 3 areas.
+Fase 7 implementa arquitetura de conectores por dominio para leiloeiros, com factory, registry, contrato unificado e endpoint de teste.
 
-## Backend - Endpoints de lotes
+## Arquitetura de conectores
 
-- `GET /api/lots/search`
-- `GET /api/lots/active`
-- `GET /api/lots/closed`
-- `GET /api/lots/{id}`
-- `POST /api/lots/refresh`
+Implementados:
 
-## Regras aplicadas
+- `ILotConnector`
+- `BaseLotConnector`
+- `ConnectorResult`
+- `ConnectorFactory`
+- `ConnectorRegistry`
 
-- Busca por filtros de marca, modelo, ano, tipo, UF e estado do veiculo.
-- `active` retorna apenas lotes em andamento (`Active` e `Confirmed` com URL valida).
-- `closed` retorna apenas lotes encerrados.
-- Item confirmado sem `lotUrl` valida nunca e retornado.
-- Separacao clara entre ativos e encerrados no backend e no frontend.
+Contrato de cada conector:
 
-## Backend - Entregas
+- `Name`
+- `SupportedDomains`
+- `SearchAsync(filters)`
+- `ParseAsync(raw)`
+- `ValidateLotUrl(url)`
 
-- `LotsController` completo para Fase 6.
-- `LotService` reestruturado para:
-  - busca consolidada (`search`) com ativos, encerrados e medias/faixas
-  - consulta separada de ativos e encerrados
-  - consulta por id
-  - refresh de lotes
-- Repositorio de lotes ajustado com:
-  - filtros por ano exato
-  - busca de encerrados por filtro
-  - consulta por id
-  - filtro de URL valida em retornos
+## Conectores criados
 
-## Frontend Angular - Tela Resultados
+Classes separadas:
 
-Tela de `Lots` com 3 areas:
+- `SodreSantoroConnector`
+- `SuperbidConnector`
+- `VipLeiloesConnector`
+- `FreitasConnector`
+- `ZukermanConnector`
+- `MegaLeiloesConnector`
+- `PactoLeiloesConnector`
+- `MilanLeiloesConnector`
 
-- **Buscar**: formulario com marca, modelo, ano, tipo, UF e estado
-- **Em andamento**: lista de lotes ativos encontrados
-- **Encerrados / media**:
-  - historico encerrado
-  - medias e faixa por modelo
+## Estado funcional
 
-Cada card de lote exibe:
+- `SuperbidConnector` implementado ponta a ponta (search + parse + validate, com fallback mock estruturado).
+- Demais conectores iniciados como mocks estruturados com TODO tecnico claro em cada classe.
 
-- titulo
-- preco
-- status
-- fonte
-- score
-- botao **Abrir lote** (somente com URL valida)
+## Regras de negocio preservadas
 
-## Navegacao
+- Sem `lotUrl` exata, item nao e confirmado.
+- Itens sem `lotUrl` valida sao descartados no pipeline.
+- Parsing permanece isolado por dominio (cada classe com `ParseAsync` proprio).
 
-Fluxo funcional entre:
+## Infra preparada (HttpClientFactory + Polly)
 
-- Dashboard
-- Monitoring
-- Lots
-- Analytics
+- Cliente nomeado `lot-connectors` configurado com `HttpClientFactory`.
+- Politicas `Polly` (retry/circuit-breaker) aplicadas.
+- `AuctionProviderClient` agora orquestra todos os conectores registrados.
+
+## Endpoints de conectores
+
+- `GET /api/connectors`
+- `POST /api/connectors/test/{name}`
+
+Endpoint de teste retorna `ConnectorResult` com:
+
+- total bruto (`raw`)
+- total parseado
+- descartados
+- lotes validos
+- observacoes
 
 ## Validacao da fase
 

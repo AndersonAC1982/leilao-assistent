@@ -3,6 +3,7 @@ using LeilaoAuto.Application.Abstractions.External;
 using LeilaoAuto.Application.Abstractions.Persistence;
 using LeilaoAuto.Infrastructure.Authentication;
 using LeilaoAuto.Infrastructure.External;
+using LeilaoAuto.Infrastructure.External.Connectors;
 using LeilaoAuto.Infrastructure.Persistence;
 using LeilaoAuto.Infrastructure.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -42,6 +43,19 @@ public static class DependencyInjection
 
         services.AddScoped<IBillingGateway, StubBillingGateway>();
         services.AddScoped<IAlertPublisher, StubAlertPublisher>();
+        services.AddScoped<IAuctionProviderClient, AuctionProviderClient>();
+
+        services.AddScoped<ILotConnector, SodreSantoroConnector>();
+        services.AddScoped<ILotConnector, SuperbidConnector>();
+        services.AddScoped<ILotConnector, VipLeiloesConnector>();
+        services.AddScoped<ILotConnector, FreitasConnector>();
+        services.AddScoped<ILotConnector, ZukermanConnector>();
+        services.AddScoped<ILotConnector, MegaLeiloesConnector>();
+        services.AddScoped<ILotConnector, PactoLeiloesConnector>();
+        services.AddScoped<ILotConnector, MilanLeiloesConnector>();
+
+        services.AddScoped<IConnectorRegistry, ConnectorRegistry>();
+        services.AddScoped<IConnectorFactory, ConnectorFactory>();
 
         services.AddHttpClient<IFipePriceProvider, FipeHttpPriceProvider>((provider, client) =>
             {
@@ -52,11 +66,17 @@ public static class DependencyInjection
             .AddPolicyHandler(GetRetryPolicy())
             .AddPolicyHandler(GetCircuitBreakerPolicy());
 
-        services.AddHttpClient<IAuctionProviderClient, AuctionProviderClient>((provider, client) =>
+        services.AddHttpClient("lot-connectors", (provider, client) =>
             {
                 var options = provider.GetRequiredService<IOptions<AuctionProviderOptions>>().Value;
                 client.BaseAddress = new Uri(options.BaseUrl);
                 client.Timeout = TimeSpan.FromSeconds(12);
+
+                if (!string.IsNullOrWhiteSpace(options.ApiKey))
+                {
+                    client.DefaultRequestHeaders.Remove("X-Api-Key");
+                    client.DefaultRequestHeaders.Add("X-Api-Key", options.ApiKey);
+                }
             })
             .AddPolicyHandler(GetRetryPolicy())
             .AddPolicyHandler(GetCircuitBreakerPolicy());
