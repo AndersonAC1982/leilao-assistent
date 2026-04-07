@@ -23,7 +23,7 @@ public class MonitoringService : IMonitoringService
         }
 
         return user.MonitoredVehicles
-            .OrderByDescending(vehicle => vehicle.CreatedAtUtc)
+            .OrderByDescending(vehicle => vehicle.CreatedAt)
             .Select(ToDto)
             .ToList();
     }
@@ -31,17 +31,16 @@ public class MonitoringService : IMonitoringService
     public async Task<MonitoredVehicleDto> AddAsync(Guid userId, CreateMonitoredVehicleRequest request, CancellationToken cancellationToken)
     {
         var user = await _userRepository.GetByIdAsync(userId, includeVehicles: true, cancellationToken)
-                   ?? throw new KeyNotFoundException("Usuário não encontrado.");
+            ?? throw new KeyNotFoundException("User not found.");
 
         var vehicle = new MonitoredVehicle(
             userId,
-            request.Make,
+            request.Brand,
             request.Model,
-            request.YearFrom,
-            request.YearTo,
-            request.VehicleType,
+            request.Year,
+            request.Type,
             request.Uf,
-            request.VehicleCondition);
+            request.VehicleState);
 
         user.AddMonitoredVehicle(vehicle);
         await _userRepository.SaveChangesAsync(cancellationToken);
@@ -49,36 +48,49 @@ public class MonitoringService : IMonitoringService
         return ToDto(vehicle);
     }
 
-    public async Task<bool> RemoveAsync(Guid userId, Guid monitoredVehicleId, CancellationToken cancellationToken)
+    public async Task<MonitoredVehicleDto> UpdateAsync(Guid userId, Guid monitoredVehicleId, UpdateMonitoredVehicleRequest request, CancellationToken cancellationToken)
     {
-        var user = await _userRepository.GetByIdAsync(userId, includeVehicles: true, cancellationToken);
-        if (user is null)
-        {
-            return false;
-        }
+        var user = await _userRepository.GetByIdAsync(userId, includeVehicles: true, cancellationToken)
+            ?? throw new KeyNotFoundException("User not found.");
 
-        var existing = user.MonitoredVehicles.FirstOrDefault(vehicle => vehicle.Id == monitoredVehicleId);
-        if (existing is null)
-        {
-            return false;
-        }
+        var existing = user.MonitoredVehicles.FirstOrDefault(vehicle => vehicle.Id == monitoredVehicleId)
+            ?? throw new KeyNotFoundException("Monitored vehicle not found.");
 
-        user.RemoveMonitoredVehicle(monitoredVehicleId);
+        existing.Update(
+            request.Brand,
+            request.Model,
+            request.Year,
+            request.Type,
+            request.Uf,
+            request.VehicleState);
+
         await _userRepository.SaveChangesAsync(cancellationToken);
-        return true;
+
+        return ToDto(existing);
+    }
+
+    public async Task RemoveAsync(Guid userId, Guid monitoredVehicleId, CancellationToken cancellationToken)
+    {
+        var user = await _userRepository.GetByIdAsync(userId, includeVehicles: true, cancellationToken)
+            ?? throw new KeyNotFoundException("User not found.");
+
+        var existing = user.MonitoredVehicles.FirstOrDefault(vehicle => vehicle.Id == monitoredVehicleId)
+            ?? throw new KeyNotFoundException("Monitored vehicle not found.");
+
+        user.RemoveMonitoredVehicle(existing.Id);
+        await _userRepository.SaveChangesAsync(cancellationToken);
     }
 
     private static MonitoredVehicleDto ToDto(MonitoredVehicle vehicle)
     {
         return new MonitoredVehicleDto(
             vehicle.Id,
-            vehicle.Make,
+            vehicle.Brand,
             vehicle.Model,
-            vehicle.YearFrom,
-            vehicle.YearTo,
-            vehicle.VehicleType,
+            vehicle.Year,
+            vehicle.Type,
             vehicle.Uf,
-            vehicle.VehicleCondition,
-            vehicle.CreatedAtUtc);
+            vehicle.VehicleState,
+            vehicle.CreatedAt);
     }
 }

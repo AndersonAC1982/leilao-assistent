@@ -3,9 +3,9 @@ using LeilaoAuto.Application.Contracts.Monitoring;
 
 namespace LeilaoAuto.Application.Validators;
 
-public class CreateMonitoredVehicleRequestValidator : AbstractValidator<CreateMonitoredVehicleRequest>
+public class UpdateMonitoredVehicleRequestValidator : AbstractValidator<UpdateMonitoredVehicleRequest>
 {
-    public CreateMonitoredVehicleRequestValidator()
+    public UpdateMonitoredVehicleRequestValidator()
     {
         var maxYear = DateTime.UtcNow.Year + 1;
 

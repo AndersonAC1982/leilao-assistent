@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { LoginPageComponent } from './features/auth/login-page.component';
+import { RegisterPageComponent } from './features/auth/register-page.component';
 import { DashboardPageComponent } from './features/dashboard/dashboard-page.component';
 import { MonitoringPageComponent } from './features/monitoring/monitoring-page.component';
 import { LotsPageComponent } from './features/lots/lots-page.component';
@@ -13,6 +14,10 @@ export const routes: Routes = [
   {
     path: 'login',
     component: LoginPageComponent
+  },
+  {
+    path: 'register',
+    component: RegisterPageComponent
   },
   {
     path: '',
@@ -52,6 +57,6 @@ export const routes: Routes = [
   },
   {
     path: '**',
-    redirectTo: 'dashboard'
+    redirectTo: 'login'
   }
 ];

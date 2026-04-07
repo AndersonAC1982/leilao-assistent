@@ -1,38 +1,127 @@
 .page {
   display: grid;
-  gap: 0.8rem;
+  gap: 1rem;
+}
+
+.heading h2 {
+  margin: 0;
+  font-family: 'Archivo Black', 'Trebuchet MS', sans-serif;
+}
+
+.heading p {
+  margin: 0.35rem 0 0;
+  color: #44576a;
+}
+
+.panel {
+  background: #fff;
+  border-radius: 14px;
+  padding: 1rem;
+  border: 1px solid #d5e0e8;
+  box-shadow: 0 10px 24px rgba(16, 34, 49, 0.08);
+}
+
+.panel h3 {
+  margin: 0 0 1rem;
 }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-  gap: 0.6rem;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0.8rem;
 }
 
-input {
-  border: 1px solid #b8c8d5;
+label {
+  display: grid;
+  gap: 0.4rem;
+  color: #233144;
+  font-size: 0.9rem;
+}
+
+input,
+select {
+  border: 1px solid #b8c4cf;
   border-radius: 10px;
-  padding: 0.58rem 0.7rem;
+  padding: 0.62rem 0.7rem;
+  font-size: 0.95rem;
+}
+
+.actions {
+  display: flex;
+  align-items: end;
+  gap: 0.6rem;
 }
 
 button {
   border: none;
   border-radius: 10px;
-  padding: 0.58rem 0.75rem;
+  padding: 0.7rem 0.9rem;
+  cursor: pointer;
   font-weight: 700;
-  color: #ffffff;
-  background: linear-gradient(90deg, #ff7e2f, #f35d2e);
+  color: #fff;
+  background: linear-gradient(90deg, #ff7e2f, #ef5f2d);
 }
 
-.preview {
-  font-family: Consolas, 'Courier New', monospace;
-  font-size: 0.84rem;
-  background: #ffffff;
+button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+button.secondary {
+  color: #193049;
+  background: #e7eff5;
+}
+
+button.danger {
+  background: #c0392b;
+}
+
+.hint {
+  margin-top: 0.8rem;
+  color: #7a5a1f;
+  font-weight: 600;
+}
+
+.vehicle-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.7rem;
+}
+
+.vehicle-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
   border: 1px solid #d5e0e8;
-  border-radius: 10px;
-  padding: 0.6rem;
+  border-radius: 12px;
+  padding: 0.8rem;
 }
 
-.todo {
-  color: #55697d;
+.vehicle-list p {
+  margin: 0.35rem 0 0;
+  color: #44576a;
+}
+
+.item-actions {
+  display: flex;
+  gap: 0.45rem;
+}
+
+.error {
+  color: #c0392b;
+  font-weight: 600;
+}
+
+@media (max-width: 720px) {
+  .vehicle-list li {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .item-actions {
+    width: 100%;
+  }
 }

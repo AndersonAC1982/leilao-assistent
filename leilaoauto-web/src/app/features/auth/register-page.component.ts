@@ -6,12 +6,12 @@ import { finalize } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 
 @Component({
-  selector: 'app-login-page',
+  selector: 'app-register-page',
   imports: [CommonModule, ReactiveFormsModule, RouterLink],
-  templateUrl: './login-page.component.html',
-  styleUrl: './login-page.component.scss'
+  templateUrl: './register-page.component.html',
+  styleUrl: './register-page.component.scss'
 })
-export class LoginPageComponent {
+export class RegisterPageComponent {
   private readonly formBuilder = inject(FormBuilder);
 
   protected readonly loading = signal(false);
@@ -19,7 +19,8 @@ export class LoginPageComponent {
 
   protected readonly form = this.formBuilder.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(8)]]
+    password: ['', [Validators.required, Validators.minLength(8)]],
+    confirmPassword: ['', [Validators.required]]
   });
 
   constructor(
@@ -37,16 +38,21 @@ export class LoginPageComponent {
       return;
     }
 
-    const request = this.form.getRawValue();
+    const { email, password, confirmPassword } = this.form.getRawValue();
+    if (password !== confirmPassword) {
+      this.errorMessage.set('Passwords must match.');
+      return;
+    }
+
     this.loading.set(true);
     this.errorMessage.set(null);
 
     this.authService
-      .login(request)
+      .register({ email, password })
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
         next: () => this.router.navigateByUrl('/dashboard'),
-        error: () => this.errorMessage.set('Invalid credentials. Check your email and password.')
+        error: () => this.errorMessage.set('Could not create account. Try a different email.')
       });
   }
 }

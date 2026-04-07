@@ -14,3 +14,11 @@ export interface AuthResponse {
   token: string;
   expiresAtUtc: string;
 }
+
+export interface AuthMeResponse {
+  userId: string;
+  email: string;
+  role: number;
+  plan: number;
+  createdAt: string;
+}

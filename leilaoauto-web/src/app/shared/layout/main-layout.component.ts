@@ -25,7 +25,7 @@ export class MainLayoutComponent {
   ];
 
   constructor(
-    private readonly authService: AuthService,
+    protected readonly authService: AuthService,
     private readonly router: Router
   ) {}
 

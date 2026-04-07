@@ -1,16 +1,94 @@
 <section class="page">
-  <h2>Monitoring</h2>
-  <p>Phase 1 scaffold for monitored vehicles.</p>
+  <header class="heading">
+    <h2>Monitoring</h2>
+    <p>Manage your tracked vehicles. Limit: 4 per user.</p>
+  </header>
 
-  <form [formGroup]="form" class="grid">
-    <input formControlName="make" placeholder="Make" />
-    <input formControlName="model" placeholder="Model" />
-    <input type="number" formControlName="yearFrom" placeholder="Year from" />
-    <input type="number" formControlName="yearTo" placeholder="Year to" />
-    <input formControlName="uf" maxlength="2" placeholder="UF" />
-    <button type="button" (click)="previewDraft()">Preview draft</button>
-  </form>
+  <article class="panel">
+    <h3>{{ editingId() ? 'Edit monitored vehicle' : 'Add monitored vehicle' }}</h3>
 
-  <p class="preview">{{ preview() }}</p>
-  <p class="todo">TODO: connect this form to monitoring endpoints.</p>
+    <form [formGroup]="form" class="grid" (ngSubmit)="submit()">
+      <label>
+        Brand
+        <input formControlName="brand" placeholder="Toyota" />
+      </label>
+
+      <label>
+        Model
+        <input formControlName="model" placeholder="Corolla XEi" />
+      </label>
+
+      <label>
+        Year
+        <input type="number" formControlName="year" placeholder="2022" />
+      </label>
+
+      <label>
+        Type
+        <select formControlName="type">
+          @for (option of typeOptions; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+      </label>
+
+      <label>
+        UF
+        <input formControlName="uf" maxlength="2" placeholder="SP" />
+      </label>
+
+      <label>
+        Vehicle state
+        <select formControlName="vehicleState">
+          @for (option of stateOptions; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+      </label>
+
+      <div class="actions">
+        <button type="submit" [disabled]="saving() || (!editingId() && !canCreateMore())">
+          {{ editingId() ? 'Save changes' : 'Add vehicle' }}
+        </button>
+
+        @if (editingId()) {
+          <button type="button" class="secondary" (click)="cancelEdit()" [disabled]="saving()">Cancel</button>
+        }
+      </div>
+    </form>
+
+    @if (!editingId() && !canCreateMore()) {
+      <p class="hint">You already reached the 4 monitored vehicles limit.</p>
+    }
+  </article>
+
+  <article class="panel">
+    <h3>Your monitored vehicles</h3>
+
+    @if (loading()) {
+      <p>Loading vehicles...</p>
+    } @else if (vehicles().length === 0) {
+      <p>No monitored vehicles yet.</p>
+    } @else {
+      <ul class="vehicle-list">
+        @for (vehicle of vehicles(); track trackByVehicle($index, vehicle)) {
+          <li>
+            <div>
+              <strong>{{ vehicle.brand }} {{ vehicle.model }}</strong>
+              <p>{{ vehicle.year }} - {{ typeLabel(vehicle.type) }} - {{ vehicle.uf }} - {{ stateLabel(vehicle.vehicleState) }}</p>
+            </div>
+
+            <div class="item-actions">
+              <button type="button" class="secondary" (click)="editVehicle(vehicle)" [disabled]="saving()">Edit</button>
+              <button type="button" class="danger" (click)="removeVehicle(vehicle.id)" [disabled]="saving()">Delete</button>
+            </div>
+          </li>
+        }
+      </ul>
+    }
+  </article>
+
+  @if (errorMessage()) {
+    <p class="error">{{ errorMessage() }}</p>
+  }
 </section>

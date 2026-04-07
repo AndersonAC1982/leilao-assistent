@@ -1,6 +1,7 @@
 using LeilaoAuto.Application.Abstractions.Auth;
 using LeilaoAuto.Application.Abstractions.Persistence;
 using LeilaoAuto.Application.Abstractions.Services;
+using LeilaoAuto.Application.Common;
 using LeilaoAuto.Application.Contracts.Auth;
 using LeilaoAuto.Domain.Entities;
 
@@ -28,7 +29,7 @@ public class AuthService : IAuthService
         var existingUser = await _userRepository.GetByEmailAsync(normalizedEmail, cancellationToken);
         if (existingUser is not null)
         {
-            throw new InvalidOperationException("E-mail já cadastrado.");
+            throw new ConflictException("Email already registered.");
         }
 
         var user = new User(normalizedEmail, _passwordHasher.Hash(request.Password));
@@ -38,21 +39,24 @@ public class AuthService : IAuthService
         return BuildAuthResponse(user);
     }
 
-    public async Task<AuthResponse?> LoginAsync(LoginRequest request, CancellationToken cancellationToken)
+    public async Task<AuthResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken)
     {
         var normalizedEmail = request.Email.Trim().ToLowerInvariant();
         var user = await _userRepository.GetByEmailAsync(normalizedEmail, cancellationToken);
-        if (user is null)
+        if (user is null || !_passwordHasher.Verify(request.Password, user.PasswordHash))
         {
-            return null;
-        }
-
-        if (!_passwordHasher.Verify(request.Password, user.PasswordHash))
-        {
-            return null;
+            throw new UnauthorizedAccessException("Invalid credentials.");
         }
 
         return BuildAuthResponse(user);
+    }
+
+    public async Task<AuthMeResponse> GetMeAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var user = await _userRepository.GetByIdAsync(userId, includeVehicles: false, cancellationToken)
+            ?? throw new UnauthorizedAccessException("User not found for current token.");
+
+        return new AuthMeResponse(user.Id, user.Email, user.Role, user.Plan, user.CreatedAt);
     }
 
     private AuthResponse BuildAuthResponse(User user)

@@ -2,7 +2,11 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { CreateMonitoredVehicleRequest, MonitoredVehicle } from '../models/monitoring.models';
+import {
+  CreateMonitoredVehicleRequest,
+  MonitoredVehicle,
+  UpdateMonitoredVehicleRequest
+} from '../models/monitoring.models';
 import { ExactLotRequest, Lot, LotSearchFilterRequest, ModelAverage } from '../models/lot.models';
 
 @Injectable({ providedIn: 'root' })
@@ -12,15 +16,19 @@ export class LeilaoApiService {
   constructor(private readonly http: HttpClient) {}
 
   getMonitoredVehicles(): Observable<MonitoredVehicle[]> {
-    return this.http.get<MonitoredVehicle[]>(`${this.apiBaseUrl}/monitoring/vehicles`);
+    return this.http.get<MonitoredVehicle[]>(`${this.apiBaseUrl}/monitoring`);
   }
 
   addMonitoredVehicle(request: CreateMonitoredVehicleRequest): Observable<MonitoredVehicle> {
-    return this.http.post<MonitoredVehicle>(`${this.apiBaseUrl}/monitoring/vehicles`, request);
+    return this.http.post<MonitoredVehicle>(`${this.apiBaseUrl}/monitoring`, request);
+  }
+
+  updateMonitoredVehicle(id: string, request: UpdateMonitoredVehicleRequest): Observable<MonitoredVehicle> {
+    return this.http.put<MonitoredVehicle>(`${this.apiBaseUrl}/monitoring/${id}`, request);
   }
 
   removeMonitoredVehicle(id: string): Observable<void> {
-    return this.http.delete<void>(`${this.apiBaseUrl}/monitoring/vehicles/${id}`);
+    return this.http.delete<void>(`${this.apiBaseUrl}/monitoring/${id}`);
   }
 
   searchActiveLots(filter: LotSearchFilterRequest): Observable<Lot[]> {

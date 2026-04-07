@@ -1,21 +1,28 @@
 export interface CreateMonitoredVehicleRequest {
-  make: string;
+  brand: string;
   model: string;
-  yearFrom: number | null;
-  yearTo: number | null;
-  vehicleType: number | null;
-  uf: string | null;
-  vehicleCondition: number | null;
+  year: number;
+  type: number;
+  uf: string;
+  vehicleState: number;
+}
+
+export interface UpdateMonitoredVehicleRequest {
+  brand: string;
+  model: string;
+  year: number;
+  type: number;
+  uf: string;
+  vehicleState: number;
 }
 
 export interface MonitoredVehicle {
   id: string;
-  make: string;
+  brand: string;
   model: string;
-  yearFrom: number | null;
-  yearTo: number | null;
-  vehicleType: number | null;
-  uf: string | null;
-  vehicleCondition: number | null;
-  createdAtUtc: string;
+  year: number;
+  type: number;
+  uf: string;
+  vehicleState: number;
+  createdAt: string;
 }

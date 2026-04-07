@@ -1,0 +1,36 @@
+<main class="auth-shell">
+  <section class="auth-card">
+    <h1>Create Account</h1>
+    <p>Start monitoring up to 4 vehicles in your LEILAOAUTO workspace.</p>
+
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <label>
+        Email
+        <input type="email" formControlName="email" placeholder="you@example.com" />
+      </label>
+
+      <label>
+        Password
+        <input type="password" formControlName="password" placeholder="At least 8 characters" />
+      </label>
+
+      <label>
+        Confirm password
+        <input type="password" formControlName="confirmPassword" placeholder="Repeat the password" />
+      </label>
+
+      <div class="actions">
+        <button type="submit" [disabled]="loading()">Create Account</button>
+      </div>
+    </form>
+
+    <p class="link-text">
+      Already registered?
+      <a routerLink="/login">Sign in</a>
+    </p>
+
+    @if (errorMessage()) {
+      <p class="error">{{ errorMessage() }}</p>
+    }
+  </section>
+</main>

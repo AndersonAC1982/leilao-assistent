@@ -4,11 +4,10 @@ namespace LeilaoAuto.Application.Contracts.Monitoring;
 
 public sealed record MonitoredVehicleDto(
     Guid Id,
-    string Make,
+    string Brand,
     string Model,
-    int? YearFrom,
-    int? YearTo,
-    VehicleType? VehicleType,
-    string? Uf,
-    VehicleCondition? VehicleCondition,
-    DateTime CreatedAtUtc);
+    int Year,
+    VehicleType Type,
+    string Uf,
+    VehicleCondition VehicleState,
+    DateTime CreatedAt);

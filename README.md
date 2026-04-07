@@ -1,6 +1,6 @@
-# LEILAOAUTO - Fase 2
+# LEILAOAUTO - Fase 3
 
-Fase 2 consolida o dominio central, persistencia e regras basicas do produto.
+Fase 3 implementa autenticacao, usuario logado (`/api/auth/me`) e gestao de veiculos monitorados com CRUD completo.
 
 ## Estrutura da solution
 
@@ -12,68 +12,49 @@ Fase 2 consolida o dominio central, persistencia e regras basicas do produto.
 - `LeilaoAuto.Tests`
 - `leilaoauto-web`
 
-## Dominio implementado
+## Backend - Endpoints de autenticacao
 
-Entidades:
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `GET /api/auth/me` (autenticado)
 
-- `User`
-- `Subscription`
-- `MonitoredVehicle`
-- `Lot`
-- `LotAnalytics`
-- `ConnectorExecutionLog`
+## Backend - Endpoints de monitoramento
 
-Enums:
+- `GET /api/monitoring`
+- `POST /api/monitoring`
+- `PUT /api/monitoring/{id}`
+- `DELETE /api/monitoring/{id}`
 
-- `UserRole`
-- `PlanType`
-- `LotStatus`
-- `SubscriptionStatus`
+## Regras aplicadas
 
-## Regras basicas implementadas
+- Usuario autenticado gerencia apenas os proprios veiculos.
+- Limite de 4 veiculos monitorados por usuario.
+- Validacao de campos obrigatorios com FluentValidation.
+- Erros retornados em ProblemDetails (incluindo conflito, validacao e regras de dominio).
 
-- Um usuario pode monitorar no maximo 4 veiculos.
-- Um lote com status `Confirmed` exige `LotUrl` valida.
-- Repositorio de lotes separa listagem de ativos e encerrados.
-- `Lot.NormalizedTitle` e gerado automaticamente para comparacoes futuras.
+## Frontend Angular
 
-## Persistencia EF Core
+Telas entregues:
 
-- Mapeamentos completos no projeto `LeilaoAuto.Infrastructure/Persistence/Configurations`.
-- Indices e constraints aplicados para chaves unicas, performance e validacao basica.
-- Migration inicial gerada:
-  - `InitialPhase2`
-  - pasta: `LeilaoAuto.Infrastructure/Persistence/Migrations`
+- Login
+- Cadastro
+- Dashboard inicial
+- Monitoramento
+
+Recursos de frontend ativos:
+
+- `AuthService` com estado simples por `signals`.
+- `JWT interceptor` para chamadas autenticadas.
+- `auth guard` para rotas privadas.
+- Formularios com Reactive Forms.
+- Tela de monitoramento com listagem e CRUD dos veiculos do usuario.
 
 ## Seed inicial
-
-Seed automatico contem:
-
-- 1 usuario admin
-- 1 usuario comum
-- 4 veiculos monitorados de exemplo (2 por usuario)
-- lotes ativos/encerrados/confirmado de exemplo
-- analytics basicos por modelo
-- log inicial de execucao de conector
 
 Credenciais seed:
 
 - Admin: `admin@leilaoauto.local` / `Admin1234`
 - User: `demo@leilaoauto.local` / `Demo1234`
-
-## Repositorios base
-
-Interfaces adicionadas em `LeilaoAuto.Application/Abstractions/Persistence`:
-
-- `IBaseRepository<TEntity>`
-- `IUserEntityRepository`
-- `ISubscriptionRepository`
-- `IMonitoredVehicleRepository`
-- `ILotRepository`
-- `ILotAnalyticsRepository`
-- `IConnectorExecutionLogRepository`
-
-Implementacoes em `LeilaoAuto.Infrastructure/Persistence/Repositories`.
 
 ## Execucao
 
@@ -83,13 +64,23 @@ Subir API + Postgres via Docker:
 docker compose up --build
 ```
 
+Rodar frontend:
+
+```bash
+cd leilaoauto-web
+npm install
+npm start
+```
+
 Endpoints uteis:
 
 - API: `http://localhost:8080`
 - Health: `http://localhost:8080/health`
 - Swagger (Development): `http://localhost:8080/swagger`
+- Frontend: `http://localhost:4200`
 
-## Observacao desta fase
+## Proximas fases
 
-- Conectores reais de importacao de leiloes ainda nao foram implementados.
-- Base de dominio/persistencia foi preparada para evolucao nas proximas fases.
+- Conectores reais de leiloeiros.
+- Matching avancado de lotes.
+- Score de oportunidade e risco com dados reais.

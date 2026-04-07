@@ -1,9 +1,11 @@
 using System.Text;
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using LeilaoAuto.Application.Common;
 using LeilaoAuto.Api.Health;
 using LeilaoAuto.Application;
 using LeilaoAuto.Application.Validators;
+using LeilaoAuto.Domain.Common;
 using LeilaoAuto.Infrastructure;
 using LeilaoAuto.Infrastructure.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -48,7 +50,7 @@ builder.Services.AddSwaggerGen(options =>
     {
         Title = "LEILAOAUTO API",
         Version = "v1",
-        Description = "Fase 1 scaffolding da API para leiloes automotivos."
+        Description = "Phase 3 API for authentication and monitored vehicles management."
     });
 
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -158,6 +160,9 @@ internal sealed class GlobalExceptionHandler : IExceptionHandler
         var statusCode = exception switch
         {
             UnauthorizedAccessException => StatusCodes.Status401Unauthorized,
+            ValidationException => StatusCodes.Status400BadRequest,
+            DomainRuleException => StatusCodes.Status400BadRequest,
+            ConflictException => StatusCodes.Status409Conflict,
             KeyNotFoundException => StatusCodes.Status404NotFound,
             InvalidOperationException => StatusCodes.Status400BadRequest,
             _ => StatusCodes.Status500InternalServerError

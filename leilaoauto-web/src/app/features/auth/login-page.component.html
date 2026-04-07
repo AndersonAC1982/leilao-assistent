@@ -1,9 +1,9 @@
 <main class="auth-shell">
   <section class="auth-card">
     <h1>LEILAOAUTO</h1>
-    <p>Phase 1 scaffold for automotive auction intelligence.</p>
+    <p>Sign in to manage monitored vehicles and opportunities.</p>
 
-    <form [formGroup]="form">
+    <form [formGroup]="form" (ngSubmit)="submit()">
       <label>
         Email
         <input type="email" formControlName="email" placeholder="you@example.com" />
@@ -15,12 +15,14 @@
       </label>
 
       <div class="actions">
-        <button type="button" (click)="submit('login')" [disabled]="loading()">Sign In</button>
-        <button type="button" class="secondary" (click)="submit('register')" [disabled]="loading()">
-          Create Account
-        </button>
+        <button type="submit" [disabled]="loading()">Sign In</button>
       </div>
     </form>
+
+    <p class="link-text">
+      No account yet?
+      <a routerLink="/register">Create one</a>
+    </p>
 
     @if (errorMessage()) {
       <p class="error">{{ errorMessage() }}</p>
