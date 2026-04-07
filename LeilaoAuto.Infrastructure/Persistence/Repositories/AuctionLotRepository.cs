@@ -20,7 +20,7 @@ public class AuctionLotRepository : IAuctionLotRepository
     {
         var lots = await _dbContext.AuctionLots
             .AsNoTracking()
-            .Where(lot => lot.Status == LotStatus.Active)
+            .Where(lot => lot.Status == LotStatus.Active || lot.Status == LotStatus.Confirmed)
             .OrderByDescending(lot => lot.UpdatedAtUtc)
             .Take(2000)
             .ToListAsync(cancellationToken);
@@ -44,7 +44,7 @@ public class AuctionLotRepository : IAuctionLotRepository
     {
         var query = _dbContext.AuctionLots
             .AsNoTracking()
-            .Where(lot => lot.Status == LotStatus.Active);
+            .Where(lot => lot.Status == LotStatus.Active || lot.Status == LotStatus.Confirmed);
 
         query = ApplyFilter(query, filter);
 
@@ -56,6 +56,41 @@ public class AuctionLotRepository : IAuctionLotRepository
         return lots.Where(lot => lot.HasValidLotUrl()).ToList();
     }
 
+    public async Task<IReadOnlyList<AuctionLot>> SearchClosedAsync(LotSearchFilterRequest filter, CancellationToken cancellationToken)
+    {
+        var query = _dbContext.AuctionLots
+            .AsNoTracking()
+            .Where(lot => lot.Status == LotStatus.Closed);
+
+        query = ApplyFilter(query, filter);
+
+        var lots = await query
+            .OrderByDescending(lot => lot.EndsAt)
+            .Take(1000)
+            .ToListAsync(cancellationToken);
+
+        return lots.Where(lot => lot.HasValidLotUrl()).ToList();
+    }
+
+    public async Task<AuctionLot?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var lot = await _dbContext.AuctionLots
+            .AsNoTracking()
+            .FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
+
+        if (lot is null)
+        {
+            return null;
+        }
+
+        if (lot.Status == LotStatus.Confirmed && !lot.HasValidLotUrl())
+        {
+            return null;
+        }
+
+        return lot.HasValidLotUrl() ? lot : null;
+    }
+
     public async Task<AuctionLot?> FindExactActiveAsync(string auctioneer, string lotNumber, CancellationToken cancellationToken)
     {
         var normalizedAuctioneer = auctioneer.Trim().ToLowerInvariant();
@@ -64,7 +99,7 @@ public class AuctionLotRepository : IAuctionLotRepository
         var lot = await _dbContext.AuctionLots
             .AsNoTracking()
             .FirstOrDefaultAsync(
-                item => item.Status == LotStatus.Active
+                item => (item.Status == LotStatus.Active || item.Status == LotStatus.Confirmed)
                         && item.Auctioneer.ToLower() == normalizedAuctioneer
                         && item.LotNumber.ToLower() == normalizedLotNumber,
                 cancellationToken);
@@ -215,6 +250,11 @@ public class AuctionLotRepository : IAuctionLotRepository
         if (filter.YearTo.HasValue)
         {
             query = query.Where(lot => lot.Year <= filter.YearTo.Value);
+        }
+
+        if (filter.Year.HasValue)
+        {
+            query = query.Where(lot => lot.Year == filter.Year.Value);
         }
 
         if (filter.VehicleType.HasValue)

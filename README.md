@@ -1,116 +1,64 @@
-# LEILAOAUTO - Fase 5
+# LEILAOAUTO - Fase 6
 
-Fase 5 implementa score de oportunidade e score de risco, incorporados ao retorno de lotes e analytics.
+Fase 6 implementa fluxo completo de listagem de lotes com separacao entre ativos e encerrados, incluindo busca por filtros e tela de resultados com 3 areas.
 
-## Backend - scoring
+## Backend - Endpoints de lotes
 
-### Score de oportunidade
+- `GET /api/lots/search`
+- `GET /api/lots/active`
+- `GET /api/lots/closed`
+- `GET /api/lots/{id}`
+- `POST /api/lots/refresh`
 
-Servico: `OpportunityScoringService`
+## Regras aplicadas
 
-Compara:
+- Busca por filtros de marca, modelo, ano, tipo, UF e estado do veiculo.
+- `active` retorna apenas lotes em andamento (`Active` e `Confirmed` com URL valida).
+- `closed` retorna apenas lotes encerrados.
+- Item confirmado sem `lotUrl` valida nunca e retornado.
+- Separacao clara entre ativos e encerrados no backend e no frontend.
 
-- `currentPrice` (ou `finalPrice` quando necessario)
-- media historica do modelo
+## Backend - Entregas
 
-Saida:
+- `LotsController` completo para Fase 6.
+- `LotService` reestruturado para:
+  - busca consolidada (`search`) com ativos, encerrados e medias/faixas
+  - consulta separada de ativos e encerrados
+  - consulta por id
+  - refresh de lotes
+- Repositorio de lotes ajustado com:
+  - filtros por ano exato
+  - busca de encerrados por filtro
+  - consulta por id
+  - filtro de URL valida em retornos
 
-- `opportunityScore` (0 a 100)
-- `opportunityLabel`:
-  - `OPORTUNIDADE`
-  - `BOM_PRECO`
-  - `ACIMA_DA_MEDIA`
+## Frontend Angular - Tela Resultados
 
-### Score de risco
+Tela de `Lots` com 3 areas:
 
-Servico: `RiskScoringService`
+- **Buscar**: formulario com marca, modelo, ano, tipo, UF e estado
+- **Em andamento**: lista de lotes ativos encontrados
+- **Encerrados / media**:
+  - historico encerrado
+  - medias e faixa por modelo
 
-Analisa titulo e descricao do lote com palavras-chave criticas:
-
-- sinistro
-- recuperavel / recuperavel
-- sucata
-- enchente
-- sem motor
-- grande monta
-- media monta
-- pequena monta
-
-Saida:
-
-- `riskScore` (0 a 100)
-- `damageLevel`
-- `decision`:
-  - `COMPRA_SEGURA`
-  - `OPORTUNIDADE_COM_RISCO`
-  - `ALTO_RISCO`
-
-## Backend - endpoints ajustados
-
-`/api/lots/*` e `/api/analytics/*` retornam scores com labels/decisao.
-
-Novos campos relevantes de lotes:
-
-- `title`
-- `source`
-- `referenceAveragePrice`
-- `opportunityScore`
-- `opportunityLabel`
-- `riskScore`
-- `damageLevel`
-- `riskDecision`
-
-## Frontend Angular
-
-### Results (Lots)
-
-Tela de resultados agora mostra cards com:
+Cada card de lote exibe:
 
 - titulo
 - preco
 - status
 - fonte
-- score de oportunidade
-- score de risco
-- botao **Abrir lote**
+- score
+- botao **Abrir lote** (somente com URL valida)
 
-Regra aplicada:
+## Navegacao
 
-- botao so renderiza com `lotUrl` valida.
+Fluxo funcional entre:
 
-### Dashboard
-
-Cards de lotes ativos exibem os mesmos indicadores de score e o botao **Abrir lote** quando `lotUrl` e valida.
-
-## Testes unitarios
-
-Cobertura de Fase 5 adicionada para:
-
-- score de oportunidade
-- score de risco
-- deteccao de palavras-chave criticas
-
-Arquivo principal:
-
-- `LeilaoAuto.Tests/ScoringPhase5Tests.cs`
-
-Tambem permanece coberto o limite de 4 veiculos monitorados.
-
-## Execucao
-
-Subir API + Postgres:
-
-```bash
-docker compose up --build
-```
-
-Rodar frontend:
-
-```bash
-cd leilaoauto-web
-npm install
-npm start
-```
+- Dashboard
+- Monitoring
+- Lots
+- Analytics
 
 ## Validacao da fase
 

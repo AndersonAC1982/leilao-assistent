@@ -7,6 +7,10 @@ public class LotSearchFilterRequestValidator : AbstractValidator<LotSearchFilter
 {
     public LotSearchFilterRequestValidator()
     {
+        RuleFor(request => request.Year)
+            .InclusiveBetween(1960, DateTime.UtcNow.Year + 1)
+            .When(request => request.Year.HasValue);
+
         RuleFor(request => request.YearFrom)
             .InclusiveBetween(1960, DateTime.UtcNow.Year + 1)
             .When(request => request.YearFrom.HasValue);

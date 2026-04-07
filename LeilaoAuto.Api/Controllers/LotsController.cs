@@ -8,7 +8,7 @@ namespace LeilaoAuto.Api.Controllers;
 
 [ApiController]
 [Authorize]
-[Route("api/[controller]")]
+[Route("api/lots")]
 public class LotsController : ControllerBase
 {
     private readonly ILotService _lotService;
@@ -18,47 +18,45 @@ public class LotsController : ControllerBase
         _lotService = lotService;
     }
 
+    [HttpGet("search")]
+    [ProducesResponseType(typeof(LotSearchResultDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Search([FromQuery] LotSearchFilterRequest filter, CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserIdOrThrow();
+        var response = await _lotService.SearchAsync(userId, filter, cancellationToken);
+        return Ok(response);
+    }
+
     [HttpGet("active")]
     [ProducesResponseType(typeof(IReadOnlyList<LotDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> SearchActive([FromQuery] LotSearchFilterRequest filter, CancellationToken cancellationToken)
+    public async Task<IActionResult> Active([FromQuery] LotSearchFilterRequest filter, CancellationToken cancellationToken)
     {
-        var userId = User.GetUserIdOrThrow();
-        var response = await _lotService.SearchActiveAsync(userId, filter, cancellationToken);
+        var response = await _lotService.GetActiveAsync(filter, cancellationToken);
         return Ok(response);
     }
 
-    [HttpGet("history")]
+    [HttpGet("closed")]
     [ProducesResponseType(typeof(IReadOnlyList<LotDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> History([FromQuery] LotSearchFilterRequest filter, CancellationToken cancellationToken)
+    public async Task<IActionResult> Closed([FromQuery] LotSearchFilterRequest filter, CancellationToken cancellationToken)
     {
-        var userId = User.GetUserIdOrThrow();
-        var response = await _lotService.GetClosedHistoryBySimilarityAsync(userId, filter, cancellationToken);
+        var response = await _lotService.GetClosedAsync(filter, cancellationToken);
         return Ok(response);
     }
 
-    [HttpGet("exact")]
+    [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(LotDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Exact([FromQuery] ExactLotRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
-        var response = await _lotService.FindExactActiveAsync(request, cancellationToken);
+        var response = await _lotService.GetByIdAsync(id, cancellationToken);
         return response is null ? NotFound() : Ok(response);
     }
 
-    [HttpGet("averages")]
-    [ProducesResponseType(typeof(IReadOnlyList<ModelAverageDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> Averages(CancellationToken cancellationToken)
-    {
-        var userId = User.GetUserIdOrThrow();
-        var response = await _lotService.GetModelAveragesByUserAsync(userId, cancellationToken);
-        return Ok(response);
-    }
-
-    [HttpPost("sync")]
+    [HttpPost("refresh")]
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
-    public async Task<IActionResult> Sync(CancellationToken cancellationToken)
+    public async Task<IActionResult> Refresh(CancellationToken cancellationToken)
     {
-        var syncedCount = await _lotService.SyncLatestLotsAsync(cancellationToken);
-        return Ok(new { synced = syncedCount });
+        var refreshedCount = await _lotService.RefreshAsync(cancellationToken);
+        return Ok(new { refreshed = refreshedCount });
     }
 }

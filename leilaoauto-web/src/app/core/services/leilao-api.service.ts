@@ -12,7 +12,7 @@ import {
   Opportunity,
   RiskSummary
 } from '../models/analytics.models';
-import { ExactLotRequest, Lot, LotSearchFilterRequest, ModelAverage } from '../models/lot.models';
+import { Lot, LotSearchFilterRequest, LotSearchResult } from '../models/lot.models';
 
 @Injectable({ providedIn: 'root' })
 export class LeilaoApiService {
@@ -36,22 +36,32 @@ export class LeilaoApiService {
     return this.http.delete<void>(`${this.apiBaseUrl}/monitoring/${id}`);
   }
 
-  searchActiveLots(filter: LotSearchFilterRequest): Observable<Lot[]> {
+  searchLots(filter: LotSearchFilterRequest): Observable<LotSearchResult> {
+    return this.http.get<LotSearchResult>(`${this.apiBaseUrl}/lots/search`, { params: this.toHttpParams(filter) });
+  }
+
+  getActiveLots(filter: LotSearchFilterRequest): Observable<Lot[]> {
     return this.http.get<Lot[]>(`${this.apiBaseUrl}/lots/active`, { params: this.toHttpParams(filter) });
   }
 
-  getClosedHistory(filter: LotSearchFilterRequest): Observable<Lot[]> {
-    return this.http.get<Lot[]>(`${this.apiBaseUrl}/lots/history`, { params: this.toHttpParams(filter) });
+  getClosedLots(filter: LotSearchFilterRequest): Observable<Lot[]> {
+    return this.http.get<Lot[]>(`${this.apiBaseUrl}/lots/closed`, { params: this.toHttpParams(filter) });
   }
 
-  getExactLot(request: ExactLotRequest): Observable<Lot> {
-    return this.http.get<Lot>(`${this.apiBaseUrl}/lots/exact`, {
-      params: this.toHttpParams(request)
-    });
+  getLotById(id: string): Observable<Lot> {
+    return this.http.get<Lot>(`${this.apiBaseUrl}/lots/${id}`);
   }
 
-  getModelAverages(): Observable<ModelAverage[]> {
-    return this.http.get<ModelAverage[]>(`${this.apiBaseUrl}/lots/averages`);
+  refreshLots(): Observable<{ refreshed: number }> {
+    return this.http.post<{ refreshed: number }>(`${this.apiBaseUrl}/lots/refresh`, {});
+  }
+
+  searchActiveLots(filter: LotSearchFilterRequest): Observable<Lot[]> {
+    return this.getActiveLots(filter);
+  }
+
+  syncLots(): Observable<{ refreshed: number }> {
+    return this.refreshLots();
   }
 
   getAveragePrice(model?: string): Observable<ModelAveragePrice[]> {
@@ -70,10 +80,6 @@ export class LeilaoApiService {
     return this.http.get<RiskSummary>(`${this.apiBaseUrl}/analytics/risk-summary`, {
       params: this.toHttpParams({ model })
     });
-  }
-
-  syncLots(): Observable<{ synced: number }> {
-    return this.http.post<{ synced: number }>(`${this.apiBaseUrl}/lots/sync`, {});
   }
 
   private toHttpParams(source: object): HttpParams {

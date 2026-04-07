@@ -1,138 +1,120 @@
 using LeilaoAuto.Application.Abstractions.External;
 using LeilaoAuto.Application.Abstractions.Persistence;
 using LeilaoAuto.Application.Abstractions.Services;
+using LeilaoAuto.Application.Contracts.Analytics;
 using LeilaoAuto.Application.Contracts.Lots;
 using LeilaoAuto.Domain.Common;
 using LeilaoAuto.Domain.Entities;
-using LeilaoAuto.Domain.Services;
+using LeilaoAuto.Domain.Enums;
 
 namespace LeilaoAuto.Application.Services;
 
 public class LotService : ILotService
 {
     private readonly IAuctionLotRepository _auctionLotRepository;
-    private readonly IUserRepository _userRepository;
     private readonly IAuctionProviderClient _auctionProviderClient;
     private readonly IFipePriceProvider _fipePriceProvider;
     private readonly IBillingGateway _billingGateway;
     private readonly IAlertPublisher _alertPublisher;
     private readonly IOpportunityScoringService _opportunityScoringService;
     private readonly IRiskScoringService _riskScoringService;
+    private readonly ILotAnalyticsComputationService _lotAnalyticsComputationService;
 
     public LotService(
         IAuctionLotRepository auctionLotRepository,
-        IUserRepository userRepository,
         IAuctionProviderClient auctionProviderClient,
         IFipePriceProvider fipePriceProvider,
         IBillingGateway billingGateway,
         IAlertPublisher alertPublisher,
         IOpportunityScoringService opportunityScoringService,
-        IRiskScoringService riskScoringService)
+        IRiskScoringService riskScoringService,
+        ILotAnalyticsComputationService lotAnalyticsComputationService)
     {
         _auctionLotRepository = auctionLotRepository;
-        _userRepository = userRepository;
         _auctionProviderClient = auctionProviderClient;
         _fipePriceProvider = fipePriceProvider;
         _billingGateway = billingGateway;
         _alertPublisher = alertPublisher;
         _opportunityScoringService = opportunityScoringService;
         _riskScoringService = riskScoringService;
+        _lotAnalyticsComputationService = lotAnalyticsComputationService;
     }
 
-    public async Task<IReadOnlyList<LotDto>> SearchActiveAsync(Guid userId, LotSearchFilterRequest filter, CancellationToken cancellationToken)
+    public async Task<LotSearchResultDto> SearchAsync(Guid userId, LotSearchFilterRequest filter, CancellationToken cancellationToken)
     {
         await _billingGateway.RegisterSearchAsync(userId, cancellationToken);
 
+        var activeLots = await GetActiveAsync(filter, cancellationToken);
+        var closedLots = await GetClosedAsync(filter, cancellationToken);
+
+        var closedDomainLots = await _auctionLotRepository.SearchClosedAsync(filter, cancellationToken);
+        var averages = _lotAnalyticsComputationService
+            .GroupAndCalculateModelPrices(closedDomainLots)
+            .Select(item => new ModelPriceRangeDto(
+                item.ComparableModel,
+                item.AveragePrice,
+                item.MinPrice,
+                item.MaxPrice,
+                item.Quantity))
+            .OrderByDescending(item => item.Quantity)
+            .ToList();
+
+        return new LotSearchResultDto(activeLots, closedLots, averages);
+    }
+
+    public async Task<IReadOnlyList<LotDto>> GetActiveAsync(LotSearchFilterRequest filter, CancellationToken cancellationToken)
+    {
         var lots = await _auctionLotRepository.SearchActiveAsync(filter, cancellationToken);
-        var validLots = lots.Where(lot => lot.HasValidLotUrl()).ToList();
-        if (validLots.Count == 0)
+        if (lots.Count == 0)
         {
             return [];
         }
 
         var averages = await _auctionLotRepository.GetAverageFinalPriceByNormalizedModelsAsync(
-            validLots.Select(lot => lot.NormalizedModel).Distinct().ToArray(),
+            lots.Select(lot => lot.NormalizedModel).Distinct().ToArray(),
             cancellationToken);
 
-        var mapped = await BuildLotsAsync(validLots, averages, cancellationToken);
-        foreach (var lot in mapped.Where(item => item.OpportunityScore >= 70 && item.RiskScore <= 30))
-        {
-            await _alertPublisher.PublishOpportunityAsync(userId, lot, cancellationToken);
-        }
-
+        var mapped = await BuildLotsAsync(lots, averages, cancellationToken);
         return mapped
+            .Where(lot => lot.Status == LotStatus.Active || lot.Status == LotStatus.Confirmed)
             .OrderByDescending(lot => lot.OpportunityScore)
             .ThenBy(lot => lot.RiskScore)
             .ToList();
     }
 
-    public async Task<IReadOnlyList<LotDto>> GetClosedHistoryBySimilarityAsync(
-        Guid userId,
-        LotSearchFilterRequest? filter,
-        CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<LotDto>> GetClosedAsync(LotSearchFilterRequest filter, CancellationToken cancellationToken)
     {
-        var user = await _userRepository.GetByIdAsync(userId, includeVehicles: true, cancellationToken);
-        if (user is null || user.MonitoredVehicles.Count == 0)
+        var lots = await _auctionLotRepository.SearchClosedAsync(filter, cancellationToken);
+        if (lots.Count == 0)
         {
             return [];
         }
 
-        var normalizedModels = user.MonitoredVehicles
-            .Select(vehicle => vehicle.NormalizedModel)
-            .Where(value => !string.IsNullOrWhiteSpace(value))
-            .Distinct()
-            .ToArray();
+        var averages = await _auctionLotRepository.GetAverageFinalPriceByNormalizedModelsAsync(
+            lots.Select(lot => lot.NormalizedModel).Distinct().ToArray(),
+            cancellationToken);
 
-        var lots = await _auctionLotRepository.GetClosedByNormalizedModelsAsync(normalizedModels, filter, cancellationToken);
-        var similarLots = lots
-            .Where(lot => lot.HasValidLotUrl())
-            .Where(lot => normalizedModels.Any(monitored => ModelMatcher.IsMatch(monitored, lot.NormalizedModel)))
+        var mapped = await BuildLotsAsync(lots, averages, cancellationToken);
+        return mapped
+            .Where(lot => lot.Status == LotStatus.Closed)
+            .OrderByDescending(lot => lot.UpdatedAtUtc)
             .ToList();
-
-        if (similarLots.Count == 0)
-        {
-            return [];
-        }
-
-        var averages = await _auctionLotRepository.GetAverageFinalPriceByNormalizedModelsAsync(normalizedModels, cancellationToken);
-        return await BuildLotsAsync(similarLots, averages, cancellationToken);
     }
 
-    public async Task<LotDto?> FindExactActiveAsync(ExactLotRequest request, CancellationToken cancellationToken)
+    public async Task<LotDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
-        var lot = await _auctionLotRepository.FindExactActiveAsync(request.Auctioneer, request.LotNumber, cancellationToken);
-        if (lot is null || !lot.HasValidLotUrl())
+        var lot = await _auctionLotRepository.GetByIdAsync(id, cancellationToken);
+        if (lot is null)
         {
             return null;
         }
 
         var averages = await _auctionLotRepository.GetAverageFinalPriceByNormalizedModelsAsync([lot.NormalizedModel], cancellationToken);
-        var list = await BuildLotsAsync([lot], averages, cancellationToken);
-        return list.SingleOrDefault();
+        var mapped = await BuildLotsAsync([lot], averages, cancellationToken);
+        return mapped.SingleOrDefault();
     }
 
-    public async Task<IReadOnlyList<ModelAverageDto>> GetModelAveragesByUserAsync(Guid userId, CancellationToken cancellationToken)
-    {
-        var user = await _userRepository.GetByIdAsync(userId, includeVehicles: true, cancellationToken);
-        if (user is null || user.MonitoredVehicles.Count == 0)
-        {
-            return [];
-        }
-
-        var normalizedModels = user.MonitoredVehicles
-            .Select(vehicle => vehicle.NormalizedModel)
-            .Where(value => !string.IsNullOrWhiteSpace(value))
-            .Distinct()
-            .ToArray();
-
-        var averages = await _auctionLotRepository.GetAverageFinalPriceByNormalizedModelsAsync(normalizedModels, cancellationToken);
-        return averages
-            .OrderBy(item => item.Key)
-            .Select(item => new ModelAverageDto(item.Key, item.Value))
-            .ToList();
-    }
-
-    public async Task<int> SyncLatestLotsAsync(CancellationToken cancellationToken)
+    public async Task<int> RefreshAsync(CancellationToken cancellationToken)
     {
         var providerLots = await _auctionProviderClient.FetchLatestLotsAsync(cancellationToken);
         if (providerLots.Count == 0)
@@ -167,7 +149,7 @@ public class LotService : ILotService
             }
             catch (DomainRuleException)
             {
-                // Ignora lotes sem URL exata válida.
+                // Ignora lotes sem URL exata valida.
             }
         }
 
@@ -237,10 +219,10 @@ public class LotService : ILotService
     {
         var conditionText = lot.VehicleCondition switch
         {
-            Domain.Enums.VehicleCondition.Damaged => "sinistro media monta",
-            Domain.Enums.VehicleCondition.Flooded => "enchente",
-            Domain.Enums.VehicleCondition.Scrap => "sucata",
-            Domain.Enums.VehicleCondition.TheftRecovery => "recuperavel",
+            VehicleCondition.Damaged => "sinistro media monta",
+            VehicleCondition.Flooded => "enchente",
+            VehicleCondition.Scrap => "sucata",
+            VehicleCondition.TheftRecovery => "recuperavel",
             _ => "sem indicio relevante"
         };
 

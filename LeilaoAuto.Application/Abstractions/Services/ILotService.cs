@@ -4,9 +4,9 @@ namespace LeilaoAuto.Application.Abstractions.Services;
 
 public interface ILotService
 {
-    Task<IReadOnlyList<LotDto>> SearchActiveAsync(Guid userId, LotSearchFilterRequest filter, CancellationToken cancellationToken);
-    Task<IReadOnlyList<LotDto>> GetClosedHistoryBySimilarityAsync(Guid userId, LotSearchFilterRequest? filter, CancellationToken cancellationToken);
-    Task<LotDto?> FindExactActiveAsync(ExactLotRequest request, CancellationToken cancellationToken);
-    Task<IReadOnlyList<ModelAverageDto>> GetModelAveragesByUserAsync(Guid userId, CancellationToken cancellationToken);
-    Task<int> SyncLatestLotsAsync(CancellationToken cancellationToken);
+    Task<LotSearchResultDto> SearchAsync(Guid userId, LotSearchFilterRequest filter, CancellationToken cancellationToken);
+    Task<IReadOnlyList<LotDto>> GetActiveAsync(LotSearchFilterRequest filter, CancellationToken cancellationToken);
+    Task<IReadOnlyList<LotDto>> GetClosedAsync(LotSearchFilterRequest filter, CancellationToken cancellationToken);
+    Task<LotDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
+    Task<int> RefreshAsync(CancellationToken cancellationToken);
 }

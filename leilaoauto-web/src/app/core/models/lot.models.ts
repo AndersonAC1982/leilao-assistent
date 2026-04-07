@@ -1,6 +1,7 @@
 export interface LotSearchFilterRequest {
   make?: string;
   model?: string;
+  year?: number;
   yearFrom?: number;
   yearTo?: number;
   vehicleType?: number;
@@ -42,4 +43,18 @@ export interface Lot {
 export interface ModelAverage {
   normalizedModel: string;
   averageFinalPrice: number;
+}
+
+export interface ModelPriceRange {
+  comparableModel: string;
+  averagePrice: number;
+  minPrice: number;
+  maxPrice: number;
+  quantity: number;
+}
+
+export interface LotSearchResult {
+  activeLots: Lot[];
+  closedLots: Lot[];
+  averages: ModelPriceRange[];
 }

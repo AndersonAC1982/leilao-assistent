@@ -31,7 +31,7 @@ public class LotSyncWorker : BackgroundService
             {
                 using var scope = _serviceProvider.CreateScope();
                 var lotService = scope.ServiceProvider.GetRequiredService<ILotService>();
-                var synced = await lotService.SyncLatestLotsAsync(stoppingToken);
+                var synced = await lotService.RefreshAsync(stoppingToken);
                 _logger.LogInformation("Sincronização concluída com {Synced} lote(s) processado(s).", synced);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -45,3 +45,4 @@ public class LotSyncWorker : BackgroundService
         } while (await timer.WaitForNextTickAsync(stoppingToken));
     }
 }
+

@@ -13,6 +13,18 @@
   color: #526579;
 }
 
+.panel {
+  background: #ffffff;
+  border: 1px solid #d5e0e8;
+  border-radius: 14px;
+  padding: 1rem;
+  box-shadow: 0 10px 24px rgba(16, 34, 49, 0.08);
+}
+
+.panel h3 {
+  margin: 0 0 0.8rem;
+}
+
 .filters {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -54,10 +66,9 @@ button:disabled {
   border: 1px solid #d5e0e8;
   border-radius: 14px;
   padding: 1rem;
-  box-shadow: 0 10px 24px rgba(16, 34, 49, 0.08);
 }
 
-.lot-card h3 {
+.lot-card h4 {
   margin: 0 0 0.6rem;
 }
 
@@ -66,36 +77,36 @@ button:disabled {
   color: #3f5366;
 }
 
-.score-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-  margin-top: 0.6rem;
-}
-
-.pill {
-  border-radius: 999px;
-  padding: 0.3rem 0.55rem;
-  font-size: 0.82rem;
-  font-weight: 700;
-}
-
-.pill.opportunity {
-  background: #e4f9ea;
-  color: #0f6b37;
-}
-
-.pill.risk {
-  background: #fde8e8;
-  color: #9e2a2a;
-}
-
 .open-lot {
   display: inline-block;
   margin-top: 0.75rem;
   text-decoration: none;
   color: #1f4d7a;
   font-weight: 700;
+}
+
+.subheading {
+  margin: 1.1rem 0 0.6rem;
+}
+
+.average-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.7rem;
+}
+
+.average-card {
+  border: 1px solid #d5e0e8;
+  border-radius: 12px;
+  padding: 0.8rem;
+}
+
+.average-card h5 {
+  margin: 0 0 0.45rem;
+}
+
+.average-card p {
+  margin: 0.28rem 0;
 }
 
 .error {
