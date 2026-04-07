@@ -51,6 +51,8 @@ public class AuctionLot
         AppraisedValue = appraisedValue;
         StartsAt = startsAt;
         EndsAt = endsAt;
+        IsProcessed = false;
+        ProcessedAtUtc = null;
         UpdatedAtUtc = DateTimeOffset.UtcNow;
     }
 
@@ -72,6 +74,8 @@ public class AuctionLot
     public decimal? AppraisedValue { get; private set; }
     public DateTimeOffset? StartsAt { get; private set; }
     public DateTimeOffset? EndsAt { get; private set; }
+    public bool IsProcessed { get; private set; }
+    public DateTimeOffset? ProcessedAtUtc { get; private set; }
     public DateTimeOffset UpdatedAtUtc { get; private set; }
 
     public bool HasValidLotUrl() => LotUrlGuard.IsValidLotUrl(LotUrl);
@@ -120,6 +124,15 @@ public class AuctionLot
         AppraisedValue = appraisedValue;
         StartsAt = startsAt;
         EndsAt = endsAt;
+        IsProcessed = false;
+        ProcessedAtUtc = null;
+        UpdatedAtUtc = DateTimeOffset.UtcNow;
+    }
+
+    public void MarkProcessed(DateTimeOffset processedAtUtc)
+    {
+        IsProcessed = true;
+        ProcessedAtUtc = processedAtUtc;
         UpdatedAtUtc = DateTimeOffset.UtcNow;
     }
 }

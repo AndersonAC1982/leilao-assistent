@@ -1,48 +1,73 @@
-using LeilaoAuto.Application.Abstractions.Services;
+using LeilaoAuto.Workers.Configuration;
+using LeilaoAuto.Workers.Services;
+using Microsoft.Extensions.Options;
 
 namespace LeilaoAuto.Workers;
 
 public class LotSyncWorker : BackgroundService
 {
     private readonly ILogger<LotSyncWorker> _logger;
-    private readonly IServiceProvider _serviceProvider;
-    private readonly IConfiguration _configuration;
+    private readonly ILotBackgroundSyncProcessor _syncProcessor;
+    private readonly WorkerOptions _options;
 
     public LotSyncWorker(
         ILogger<LotSyncWorker> logger,
-        IServiceProvider serviceProvider,
-        IConfiguration configuration)
+        ILotBackgroundSyncProcessor syncProcessor,
+        IOptions<WorkerOptions> options)
     {
         _logger = logger;
-        _serviceProvider = serviceProvider;
-        _configuration = configuration;
+        _syncProcessor = syncProcessor;
+        _options = options.Value;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var intervalSeconds = _configuration.GetValue<int?>("Worker:SyncIntervalSeconds") ?? 180;
+        if (!_options.Enabled)
+        {
+            _logger.LogInformation("LotSyncWorker is disabled by configuration.");
+            return;
+        }
+
+        var intervalSeconds = Math.Max(15, _options.SyncIntervalSeconds);
         using var timer = new PeriodicTimer(TimeSpan.FromSeconds(intervalSeconds));
 
-        _logger.LogInformation("LotSyncWorker iniciado com intervalo de {IntervalSeconds} segundos.", intervalSeconds);
+        _logger.LogInformation(
+            "LotSyncWorker started. Interval={IntervalSeconds}s, RetryCount={RetryCount}, RetryDelay={RetryDelaySeconds}s.",
+            intervalSeconds,
+            Math.Max(1, _options.ConnectorRetryCount),
+            Math.Max(1, _options.ConnectorRetryDelaySeconds));
 
-        do
+        if (_options.RunOnStartup)
         {
-            try
-            {
-                using var scope = _serviceProvider.CreateScope();
-                var lotService = scope.ServiceProvider.GetRequiredService<ILotService>();
-                var synced = await lotService.RefreshAsync(stoppingToken);
-                _logger.LogInformation("Sincronização concluída com {Synced} lote(s) processado(s).", synced);
-            }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-            {
-                break;
-            }
-            catch (Exception exception)
-            {
-                _logger.LogError(exception, "Falha ao sincronizar lotes no worker.");
-            }
-        } while (await timer.WaitForNextTickAsync(stoppingToken));
+            await RunCycleSafelyAsync(stoppingToken);
+        }
+
+        while (await timer.WaitForNextTickAsync(stoppingToken))
+        {
+            await RunCycleSafelyAsync(stoppingToken);
+        }
+    }
+
+    private async Task RunCycleSafelyAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _syncProcessor.RunCycleAsync(cancellationToken);
+            _logger.LogInformation(
+                "Sync cycle finished. Connectors={Connectors}, Read={Read}, Saved={Saved}, AnalyticsUpdated={AnalyticsUpdated}, Failures={Failures}.",
+                result.ConnectorsProcessed,
+                result.RecordsRead,
+                result.RecordsSaved,
+                result.AnalyticsUpdated,
+                result.Failures);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Graceful shutdown.
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Unhandled error in sync cycle. Worker remains alive for next execution.");
+        }
     }
 }
-

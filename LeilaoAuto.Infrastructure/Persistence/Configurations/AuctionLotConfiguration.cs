@@ -84,12 +84,20 @@ public class AuctionLotConfiguration : IEntityTypeConfiguration<AuctionLot>
         builder.Property(lot => lot.StartsAt).HasColumnName("starts_at");
         builder.Property(lot => lot.EndsAt).HasColumnName("ends_at");
 
+        builder.Property(lot => lot.IsProcessed)
+            .HasColumnName("is_processed")
+            .IsRequired();
+
+        builder.Property(lot => lot.ProcessedAtUtc)
+            .HasColumnName("processed_at_utc");
+
         builder.Property(lot => lot.UpdatedAtUtc)
             .HasColumnName("updated_at_utc")
             .IsRequired();
 
         builder.HasIndex(lot => lot.ExternalId).IsUnique();
         builder.HasIndex(lot => new { lot.Status, lot.NormalizedModel });
+        builder.HasIndex(lot => new { lot.IsProcessed, lot.Status });
         builder.HasIndex(lot => new { lot.Auctioneer, lot.LotNumber, lot.Status });
     }
 }

@@ -40,5 +40,27 @@ services:
     ports:
       - "8080:8080"
 
+  worker:
+    build:
+      context: .
+      dockerfile: LeilaoAuto.Workers/Dockerfile
+    container_name: leilaoauto-worker
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DOTNET_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=leilaoauto;Username=postgres;Password=postgres
+      Worker__Enabled: "true"
+      Worker__SyncIntervalSeconds: 120
+      Worker__ConnectorRetryCount: 3
+      Worker__ConnectorRetryDelaySeconds: 2
+      Worker__RunOnStartup: "true"
+      AuctionProviders__Primary__MockMode: "true"
+      Fipe__Enabled: "true"
+      Fipe__BaseUrl: https://brasilapi.com.br
+      Fipe__PriceByCodeEndpoint: /api/fipe/preco/v1/{code}
+      Fipe__UseEstimatedFallback: "true"
+
 volumes:
   leilaoauto-postgres-data:

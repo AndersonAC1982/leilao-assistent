@@ -180,6 +180,7 @@ public class AuctionLotRepository : IAuctionLotRepository
             return;
         }
 
+        var processedAt = DateTimeOffset.UtcNow;
         var externalIds = lotList.Select(lot => lot.ExternalId).Distinct().ToArray();
         var existingLots = await _dbContext.AuctionLots
             .Where(lot => externalIds.Contains(lot.ExternalId))
@@ -210,9 +211,12 @@ public class AuctionLotRepository : IAuctionLotRepository
                     lot.AppraisedValue,
                     lot.StartsAt,
                     lot.EndsAt);
+
+                existing.MarkProcessed(processedAt);
             }
             else
             {
+                lot.MarkProcessed(processedAt);
                 await _dbContext.AuctionLots.AddAsync(lot, cancellationToken);
             }
         }

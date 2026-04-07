@@ -30,4 +30,13 @@ public class LotAnalytics
     public decimal MaxPrice { get; private set; }
     public int SampleSize { get; private set; }
     public DateTime UpdatedAt { get; private set; }
+
+    public void Refresh(decimal averagePrice, decimal minPrice, decimal maxPrice, int sampleSize, DateTime updatedAt)
+    {
+        AveragePrice = averagePrice;
+        MinPrice = minPrice;
+        MaxPrice = maxPrice;
+        SampleSize = sampleSize;
+        UpdatedAt = updatedAt;
+    }
 }
