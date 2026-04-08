@@ -47,4 +47,9 @@ public class User
             MonitoredVehicles.Remove(toRemove);
         }
     }
+
+    public void ChangePlan(PlanType plan)
+    {
+        Plan = plan;
+    }
 }

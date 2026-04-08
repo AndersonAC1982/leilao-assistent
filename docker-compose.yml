@@ -33,10 +33,15 @@ services:
       Jwt__SecretKey: LEILAOAUTO__JWT__THIS_IS_A_LONG_SECRET_KEY_FOR_DEVELOPMENT_2026
       Jwt__ExpiresMinutes: 180
       Cors__AllowedOrigins__0: http://localhost:4200
+      Cors__AllowedOrigins__1: http://127.0.0.1:4200
+      Http__UseHttpsRedirection: "false"
       Fipe__Enabled: "true"
       Fipe__BaseUrl: https://brasilapi.com.br
       Fipe__PriceByCodeEndpoint: /api/fipe/preco/v1/{code}
       Fipe__UseEstimatedFallback: "true"
+      Billing__Provider: Fake
+      Billing__SuccessUrl: http://localhost:4200/billing?checkout=success
+      Billing__CancelUrl: http://localhost:4200/billing?checkout=cancel
     ports:
       - "8080:8080"
 
@@ -61,6 +66,22 @@ services:
       Fipe__BaseUrl: https://brasilapi.com.br
       Fipe__PriceByCodeEndpoint: /api/fipe/preco/v1/{code}
       Fipe__UseEstimatedFallback: "true"
+      Billing__Provider: Fake
+      Billing__SuccessUrl: http://localhost:4200/billing?checkout=success
+      Billing__CancelUrl: http://localhost:4200/billing?checkout=cancel
+
+  # Optional frontend container. Enable with: docker compose --profile frontend up --build
+  web:
+    profiles: ["frontend"]
+    build:
+      context: .
+      dockerfile: leilaoauto-web/Dockerfile
+    container_name: leilaoauto-web
+    depends_on:
+      api:
+        condition: service_started
+    ports:
+      - "4200:80"
 
 volumes:
   leilaoauto-postgres-data:

@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -40,7 +40,7 @@ export class RegisterPageComponent {
 
     const { email, password, confirmPassword } = this.form.getRawValue();
     if (password !== confirmPassword) {
-      this.errorMessage.set('Passwords must match.');
+      this.errorMessage.set('As senhas precisam ser iguais.');
       return;
     }
 
@@ -52,7 +52,15 @@ export class RegisterPageComponent {
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
         next: () => this.router.navigateByUrl('/dashboard'),
-        error: () => this.errorMessage.set('Could not create account. Try a different email.')
+        error: (error) => {
+          if (error?.status === 0) {
+            this.errorMessage.set('Falha de conexão com a API (CORS/rede). Confirme se backend está rodando em http://localhost:8080.');
+            return;
+          }
+
+          this.errorMessage.set(error?.error?.detail ?? 'Não foi possível criar a conta. Tente outro e-mail.');
+        }
       });
   }
 }
+

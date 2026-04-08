@@ -1,4 +1,5 @@
 using LeilaoAuto.Api.Extensions;
+using LeilaoAuto.Api.Authorization;
 using LeilaoAuto.Application.Abstractions.Services;
 using LeilaoAuto.Application.Contracts.Analytics;
 using Microsoft.AspNetCore.Authorization;
@@ -7,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace LeilaoAuto.Api.Controllers;
 
 [ApiController]
-[Authorize]
+[Authorize(Policy = PlanPolicies.ProOrHigher)]
 [Route("api/analytics")]
 public class AnalyticsController : ControllerBase
 {

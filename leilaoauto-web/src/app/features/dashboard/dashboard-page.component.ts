@@ -1,10 +1,12 @@
-import { CommonModule, CurrencyPipe, DecimalPipe } from '@angular/common';
+﻿import { CommonModule, CurrencyPipe, DecimalPipe } from '@angular/common';
 import { Component, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { Lot } from '../../core/models/lot.models';
 import { AuthService } from '../../core/services/auth.service';
 import { LeilaoApiService } from '../../core/services/leilao-api.service';
+import { isValidLotUrl } from '../../shared/utils/lot-url-validator';
+import { toOpportunityLabel, toRiskDecisionLabel } from '../../shared/utils/scoring-labels';
 
 @Component({
   selector: 'app-dashboard-page',
@@ -14,14 +16,15 @@ import { LeilaoApiService } from '../../core/services/leilao-api.service';
 })
 export class DashboardPageComponent implements OnInit {
   protected readonly roleLabels: Record<number, string> = {
-    1: 'User',
-    2: 'Admin'
+    1: 'Usuário',
+    2: 'Administrador'
   };
 
   protected readonly planLabels: Record<number, string> = {
-    1: 'Free',
+    1: 'Grátis',
     2: 'Pro',
-    3: 'Enterprise'
+    3: 'Premium',
+    4: 'Elite'
   };
 
   protected readonly statusLabels: Record<number, string> = {
@@ -52,20 +55,15 @@ export class DashboardPageComponent implements OnInit {
   }
 
   protected hasValidLotUrl(url: string | null | undefined): boolean {
-    if (!url) {
-      return false;
-    }
+    return isValidLotUrl(url);
+  }
 
-    try {
-      const parsed = new URL(url);
-      const path = parsed.pathname.replace(/\/+$/, '').toLowerCase();
-      if (!path || path === '/' || path === '/home' || path === '/inicio' || path === '/index' || path === '/default') {
-        return false;
-      }
+  protected opportunityLabel(label: string | null | undefined): string {
+    return toOpportunityLabel(label);
+  }
 
-      return /\d/.test(parsed.pathname + parsed.search);
-    } catch {
-      return false;
-    }
+  protected riskDecisionLabel(decision: string | null | undefined): string {
+    return toRiskDecisionLabel(decision);
   }
 }
+

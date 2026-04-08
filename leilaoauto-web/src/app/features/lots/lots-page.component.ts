@@ -1,9 +1,11 @@
-import { CommonModule, CurrencyPipe, DecimalPipe } from '@angular/common';
+﻿import { CommonModule, CurrencyPipe, DecimalPipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { Lot, LotSearchFilterRequest, ModelPriceRange } from '../../core/models/lot.models';
 import { LeilaoApiService } from '../../core/services/leilao-api.service';
+import { isValidLotUrl } from '../../shared/utils/lot-url-validator';
+import { toOpportunityLabel, toRiskDecisionLabel } from '../../shared/utils/scoring-labels';
 
 @Component({
   selector: 'app-lots-page',
@@ -60,7 +62,7 @@ export class LotsPageComponent implements OnInit {
           this.activeLots.set([]);
           this.closedLots.set([]);
           this.averages.set([]);
-          this.errorMessage.set('Nao foi possivel carregar resultados agora.');
+          this.errorMessage.set('Não foi possível carregar os resultados agora.');
         }
       });
   }
@@ -79,21 +81,7 @@ export class LotsPageComponent implements OnInit {
   }
 
   protected hasValidLotUrl(url: string | null | undefined): boolean {
-    if (!url) {
-      return false;
-    }
-
-    try {
-      const parsed = new URL(url);
-      const path = parsed.pathname.replace(/\/+$/, '').toLowerCase();
-      if (!path || path === '/' || path === '/home' || path === '/inicio' || path === '/index' || path === '/default') {
-        return false;
-      }
-
-      return /\d/.test(parsed.pathname + parsed.search);
-    } catch {
-      return false;
-    }
+    return isValidLotUrl(url);
   }
 
   protected trackByLot(index: number, lot: Lot): string {
@@ -102,6 +90,14 @@ export class LotsPageComponent implements OnInit {
 
   protected trackByAverage(index: number, item: ModelPriceRange): string {
     return item.comparableModel;
+  }
+
+  protected opportunityLabel(label: string | null | undefined): string {
+    return toOpportunityLabel(label);
+  }
+
+  protected riskDecisionLabel(decision: string | null | undefined): string {
+    return toRiskDecisionLabel(decision);
   }
 
   private buildFilter(): LotSearchFilterRequest {
@@ -117,3 +113,4 @@ export class LotsPageComponent implements OnInit {
     };
   }
 }
+

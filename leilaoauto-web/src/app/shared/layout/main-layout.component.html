@@ -1,13 +1,13 @@
-<div class="shell">
+﻿<div class="shell">
   <header class="topbar">
     <div>
       <h1>LEILAOAUTO</h1>
-      <p>Phase 3 - Auth and Monitoring</p>
+      <p>Plataforma inteligente de monitoramento e oportunidades em leilões</p>
       @if (authService.currentUser(); as me) {
         <small>{{ me.email }}</small>
       }
     </div>
-    <button type="button" (click)="logout()">Sign out</button>
+    <button type="button" (click)="logout()">Sair</button>
   </header>
 
   <div class="content-area">
@@ -27,3 +27,4 @@
     </main>
   </div>
 </div>
+

@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -46,7 +46,20 @@ export class LoginPageComponent {
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
         next: () => this.router.navigateByUrl('/dashboard'),
-        error: () => this.errorMessage.set('Invalid credentials. Check your email and password.')
+        error: (error) => {
+          if (error?.status === 0) {
+            this.errorMessage.set('Falha de conexão com a API (CORS/rede). Confirme se backend está rodando em http://localhost:8080.');
+            return;
+          }
+
+          if (error?.status === 401) {
+            this.errorMessage.set('Credenciais inválidas. Verifique e-mail e senha.');
+            return;
+          }
+
+          this.errorMessage.set(error?.error?.detail ?? 'Não foi possível autenticar agora.');
+        }
       });
   }
 }
+

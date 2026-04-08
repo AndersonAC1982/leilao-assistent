@@ -1,27 +1,27 @@
-<main class="auth-shell">
+﻿<main class="auth-shell">
   <section class="auth-card">
     <h1>LEILAOAUTO</h1>
-    <p>Sign in to manage monitored vehicles and opportunities.</p>
+    <p>Entre para gerenciar seus veículos monitorados e oportunidades.</p>
 
     <form [formGroup]="form" (ngSubmit)="submit()">
       <label>
-        Email
-        <input type="email" formControlName="email" placeholder="you@example.com" />
+        E-mail
+        <input type="email" formControlName="email" placeholder="voce@exemplo.com" />
       </label>
 
       <label>
-        Password
-        <input type="password" formControlName="password" placeholder="Minimum 8 characters" />
+        Senha
+        <input type="password" formControlName="password" placeholder="Mínimo de 8 caracteres" />
       </label>
 
       <div class="actions">
-        <button type="submit" [disabled]="loading()">Sign In</button>
+        <button type="submit" [disabled]="loading()">Entrar</button>
       </div>
     </form>
 
     <p class="link-text">
-      No account yet?
-      <a routerLink="/register">Create one</a>
+      Ainda não tem conta?
+      <a routerLink="/register">Criar conta</a>
     </p>
 
     @if (errorMessage()) {
@@ -29,3 +29,4 @@
     }
   </section>
 </main>
+

@@ -14,6 +14,7 @@ public static class DependencyInjection
         services.AddScoped<IOpportunityScoringService, OpportunityScoringService>();
         services.AddScoped<IRiskScoringService, RiskScoringService>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IBillingService, BillingService>();
         services.AddScoped<IMonitoringService, MonitoringService>();
         services.AddScoped<ILotService, LotService>();
         return services;

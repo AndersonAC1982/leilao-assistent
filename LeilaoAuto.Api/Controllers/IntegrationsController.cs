@@ -1,11 +1,12 @@
 using LeilaoAuto.Application.Abstractions.External;
+using LeilaoAuto.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LeilaoAuto.Api.Controllers;
 
 [ApiController]
-[Authorize]
+[Authorize(Policy = PlanPolicies.PremiumOrHigher)]
 [Route("api/integrations")]
 public class IntegrationsController : ControllerBase
 {

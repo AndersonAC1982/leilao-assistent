@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
@@ -26,20 +26,20 @@ export class MonitoringPageComponent implements OnInit {
   protected readonly editingId = signal<string | null>(null);
 
   protected readonly typeOptions: SelectOption[] = [
-    { value: 1, label: 'Car' },
-    { value: 2, label: 'Motorcycle' },
-    { value: 3, label: 'Truck' },
-    { value: 4, label: 'Utility' },
-    { value: 5, label: 'Other' }
+    { value: 1, label: 'Carro' },
+    { value: 2, label: 'Moto' },
+    { value: 3, label: 'Caminhão' },
+    { value: 4, label: 'Utilitário' },
+    { value: 5, label: 'Outro' }
   ];
 
   protected readonly stateOptions: SelectOption[] = [
-    { value: 0, label: 'Unknown' },
-    { value: 1, label: 'Running' },
-    { value: 2, label: 'Damaged' },
-    { value: 3, label: 'Flooded' },
-    { value: 4, label: 'Theft Recovery' },
-    { value: 5, label: 'Scrap' }
+    { value: 0, label: 'Desconhecido' },
+    { value: 1, label: 'Em bom estado' },
+    { value: 2, label: 'Danificado' },
+    { value: 3, label: 'Enchente' },
+    { value: 4, label: 'Recuperado de roubo/furto' },
+    { value: 5, label: 'Sucata' }
   ];
 
   protected readonly form = this.formBuilder.nonNullable.group({
@@ -72,7 +72,7 @@ export class MonitoringPageComponent implements OnInit {
     }
 
     if (!this.canCreateMore()) {
-      this.errorMessage.set('You can monitor up to 4 vehicles. Remove one before creating another.');
+      this.errorMessage.set('Você pode monitorar no máximo 4 veículos. Remova um item antes de adicionar outro.');
       return;
     }
 
@@ -100,7 +100,7 @@ export class MonitoringPageComponent implements OnInit {
         this.loadVehicles();
       },
       error: () => {
-        this.errorMessage.set('Could not save vehicle. Verify fields and try again.');
+        this.errorMessage.set('Não foi possível salvar o veículo. Revise os campos e tente novamente.');
       }
     });
   }
@@ -150,7 +150,7 @@ export class MonitoringPageComponent implements OnInit {
           this.loadVehicles();
         },
         error: () => {
-          this.errorMessage.set('Could not remove vehicle right now.');
+          this.errorMessage.set('Não foi possível remover o veículo agora.');
         }
       });
   }
@@ -174,8 +174,9 @@ export class MonitoringPageComponent implements OnInit {
         next: (response) => this.vehicles.set(response),
         error: () => {
           this.vehicles.set([]);
-          this.errorMessage.set('Could not load your monitored vehicles.');
+          this.errorMessage.set('Não foi possível carregar seus veículos monitorados.');
         }
       });
   }
 }
+

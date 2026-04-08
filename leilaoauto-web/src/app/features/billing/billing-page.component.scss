@@ -1,14 +1,123 @@
 .page {
-  background: #ffffff;
-  border: 1px solid #d5e0e8;
+  display: grid;
+  gap: 1rem;
+}
+
+.page-header {
+  background: linear-gradient(135deg, #f9efe0, #e9f7ee);
+  border: 1px solid #d6e2d5;
   border-radius: 14px;
   padding: 1rem;
 }
 
-.todo-box {
-  margin-top: 0.7rem;
+.page-header h2 {
+  margin: 0;
+}
+
+.page-header p {
+  margin: 0.3rem 0 0;
+  color: #375056;
+}
+
+.status-box {
+  border: 1px solid #d5e0e8;
   border-radius: 10px;
-  border: 1px dashed #b8c8d5;
+  padding: 0.75rem;
+  background: #f8fbff;
+}
+
+.status-box.error {
+  border-color: #f0b1b1;
+  background: #fff4f4;
+  color: #7a1f1f;
+}
+
+.status-box.info {
+  border-color: #b8dac0;
+  background: #f2fff5;
+  color: #1e5631;
+}
+
+.current-plan {
+  border: 1px solid #dae4ee;
+  border-radius: 12px;
+  padding: 1rem;
+  background: #fff;
+}
+
+.current-plan h3 {
+  margin: 0;
+}
+
+.current-plan .price {
+  margin: 0.4rem 0;
+  color: #0b5a56;
+  font-weight: 700;
+}
+
+.plans-grid {
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.plan-card {
+  border: 1px solid #d5e0e8;
+  border-radius: 14px;
+  background: #fff;
+  padding: 0.9rem;
+  display: grid;
+  gap: 0.8rem;
+}
+
+.plan-card.current {
+  border-color: #0b5a56;
+  box-shadow: 0 0 0 2px rgba(11, 90, 86, 0.1);
+}
+
+.plan-card header h4 {
+  margin: 0;
+}
+
+.plan-card header p {
+  margin: 0.2rem 0 0;
+  color: #38505b;
+  font-weight: 600;
+}
+
+.plan-card ul {
+  margin: 0;
+  padding-left: 1rem;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.btn {
+  border: 1px solid #1a6d66;
+  border-radius: 8px;
+  padding: 0.55rem 0.75rem;
+  background: #1a6d66;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.btn.current {
+  border-color: #80999f;
+  background: #80999f;
+}
+
+.provider-note {
+  border: 1px dashed #c1cedb;
+  border-radius: 10px;
+  background: #f9fbff;
   padding: 0.8rem;
-  color: #4d6073;
+  color: #3c5266;
+  display: grid;
+  gap: 0.3rem;
 }

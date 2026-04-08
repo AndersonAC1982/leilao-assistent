@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
@@ -16,12 +16,12 @@ interface NavItem {
 })
 export class MainLayoutComponent {
   protected readonly navItems: NavItem[] = [
-    { label: 'Dashboard', path: '/dashboard' },
-    { label: 'Monitoring', path: '/monitoring' },
-    { label: 'Lots', path: '/lots' },
-    { label: 'Analytics', path: '/analytics' },
-    { label: 'Billing', path: '/billing' },
-    { label: 'Settings', path: '/settings' }
+    { label: 'Painel', path: '/dashboard' },
+    { label: 'Monitoramento', path: '/monitoring' },
+    { label: 'Lotes', path: '/lots' },
+    { label: 'Análises', path: '/analytics' },
+    { label: 'Assinatura', path: '/billing' },
+    { label: 'Configurações', path: '/settings' }
   ];
 
   constructor(
@@ -34,3 +34,4 @@ export class MainLayoutComponent {
     this.router.navigateByUrl('/login');
   }
 }
+

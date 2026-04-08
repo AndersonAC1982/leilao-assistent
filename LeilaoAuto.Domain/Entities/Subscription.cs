@@ -40,4 +40,20 @@ public class Subscription
     public DateTime? EndsAt { get; private set; }
 
     public User? User { get; private set; }
+
+    public void UpdateFromProvider(
+        SubscriptionStatus status,
+        PlanType plan,
+        DateTime? endsAt,
+        string? externalCustomerId = null)
+    {
+        Status = status;
+        Plan = plan;
+        EndsAt = endsAt;
+
+        if (!string.IsNullOrWhiteSpace(externalCustomerId))
+        {
+            ExternalCustomerId = externalCustomerId.Trim();
+        }
+    }
 }

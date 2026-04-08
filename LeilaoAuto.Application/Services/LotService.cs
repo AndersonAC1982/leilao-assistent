@@ -11,6 +11,7 @@ namespace LeilaoAuto.Application.Services;
 
 public class LotService : ILotService
 {
+    private readonly IUserRepository _userRepository;
     private readonly IAuctionLotRepository _auctionLotRepository;
     private readonly IAuctionProviderClient _auctionProviderClient;
     private readonly IFipePriceProvider _fipePriceProvider;
@@ -21,6 +22,7 @@ public class LotService : ILotService
     private readonly ILotAnalyticsComputationService _lotAnalyticsComputationService;
 
     public LotService(
+        IUserRepository userRepository,
         IAuctionLotRepository auctionLotRepository,
         IAuctionProviderClient auctionProviderClient,
         IFipePriceProvider fipePriceProvider,
@@ -30,6 +32,7 @@ public class LotService : ILotService
         IRiskScoringService riskScoringService,
         ILotAnalyticsComputationService lotAnalyticsComputationService)
     {
+        _userRepository = userRepository;
         _auctionLotRepository = auctionLotRepository;
         _auctionProviderClient = auctionProviderClient;
         _fipePriceProvider = fipePriceProvider;
@@ -42,10 +45,13 @@ public class LotService : ILotService
 
     public async Task<LotSearchResultDto> SearchAsync(Guid userId, LotSearchFilterRequest filter, CancellationToken cancellationToken)
     {
+        var user = await _userRepository.GetByIdAsync(userId, includeVehicles: false, cancellationToken)
+            ?? throw new UnauthorizedAccessException("User not found for current token.");
+
         await _billingGateway.RegisterSearchAsync(userId, cancellationToken);
 
-        var activeLots = await GetActiveAsync(filter, cancellationToken);
-        var closedLots = await GetClosedAsync(filter, cancellationToken);
+        var activeLots = (await GetActiveAsync(filter, cancellationToken)).ToList();
+        var closedLots = (await GetClosedAsync(filter, cancellationToken)).ToList();
 
         var closedDomainLots = await _auctionLotRepository.SearchClosedAsync(filter, cancellationToken);
         var averages = _lotAnalyticsComputationService
@@ -58,6 +64,13 @@ public class LotService : ILotService
                 item.Quantity))
             .OrderByDescending(item => item.Quantity)
             .ToList();
+
+        if (user.Plan == PlanType.Free)
+        {
+            activeLots = activeLots.Take(10).ToList();
+            closedLots = closedLots.Take(10).ToList();
+            averages = averages.Take(3).ToList();
+        }
 
         return new LotSearchResultDto(activeLots, closedLots, averages);
     }

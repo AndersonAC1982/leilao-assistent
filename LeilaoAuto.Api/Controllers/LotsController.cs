@@ -1,4 +1,5 @@
 using LeilaoAuto.Api.Extensions;
+using LeilaoAuto.Api.Authorization;
 using LeilaoAuto.Application.Abstractions.Services;
 using LeilaoAuto.Application.Contracts.Lots;
 using Microsoft.AspNetCore.Authorization;
@@ -53,10 +54,11 @@ public class LotsController : ControllerBase
     }
 
     [HttpPost("refresh")]
-    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [Authorize(Policy = PlanPolicies.PremiumOrHigher)]
+    [ProducesResponseType(typeof(RefreshLotsResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> Refresh(CancellationToken cancellationToken)
     {
         var refreshedCount = await _lotService.RefreshAsync(cancellationToken);
-        return Ok(new { refreshed = refreshedCount });
+        return Ok(new RefreshLotsResponse(refreshedCount));
     }
 }

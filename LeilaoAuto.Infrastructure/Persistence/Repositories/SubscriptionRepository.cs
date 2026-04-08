@@ -18,4 +18,24 @@ public class SubscriptionRepository : BaseRepository<Subscription>, ISubscriptio
             .OrderByDescending(subscription => subscription.StartedAt)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<Subscription?> GetActiveByUserIdAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        return await DbContext.Subscriptions
+            .AsNoTracking()
+            .Where(subscription => subscription.UserId == userId)
+            .OrderByDescending(subscription => subscription.StartedAt)
+            .FirstOrDefaultAsync(
+                subscription => subscription.Status == Domain.Enums.SubscriptionStatus.Active
+                                || subscription.Status == Domain.Enums.SubscriptionStatus.PastDue
+                                || subscription.Status == Domain.Enums.SubscriptionStatus.Pending,
+                cancellationToken);
+    }
+
+    public async Task<Subscription?> GetByExternalSubscriptionIdAsync(string externalSubscriptionId, CancellationToken cancellationToken)
+    {
+        var normalizedExternalId = externalSubscriptionId.Trim();
+        return await DbContext.Subscriptions
+            .FirstOrDefaultAsync(subscription => subscription.ExternalSubscriptionId == normalizedExternalId, cancellationToken);
+    }
 }

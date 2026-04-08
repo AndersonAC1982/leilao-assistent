@@ -1,8 +1,64 @@
-<section class="page">
-  <h2>Billing</h2>
-  <p>Placeholder page for plans, invoices and usage accounting.</p>
+﻿<section class="page">
+  <header class="page-header">
+    <div>
+      <h2>Assinatura</h2>
+      <p>Gerencie seu plano e habilite recursos avançados do LEILAOAUTO.</p>
+    </div>
+  </header>
 
-  <div class="todo-box">
-    <p>TODO: integrate billing provider and subscription lifecycle.</p>
-  </div>
+  @if (loading()) {
+    <div class="status-box">Carregando informações do plano...</div>
+  }
+
+  @if (errorMessage()) {
+    <div class="status-box error">{{ errorMessage() }}</div>
+  }
+
+  @if (infoMessage()) {
+    <div class="status-box info">{{ infoMessage() }}</div>
+  }
+
+  @if (data(); as billing) {
+    <section class="current-plan">
+      <h3>Plano atual: {{ localizedPlanName(billing.currentPlanDisplayName) }}</h3>
+      @if (currentPlanCard(); as planCard) {
+        <p class="price">{{ planCard.monthlyPrice | currency: 'BRL' : 'symbol' : '1.2-2' }} / mês</p>
+      }
+      @if (billing.subscriptionEndsAt) {
+        <small>Renovação/fim: {{ billing.subscriptionEndsAt | date: 'dd/MM/yyyy HH:mm' }}</small>
+      }
+    </section>
+
+    <section class="plans-grid">
+      <article class="plan-card" *ngFor="let plan of billing.plans; trackBy: trackByPlan" [class.current]="isCurrent(plan)">
+        <header>
+          <h4>{{ localizedPlanName(plan.displayName) }}</h4>
+          <p>{{ plan.monthlyPrice | currency: 'BRL' : 'symbol' : '1.2-2' }} / mês</p>
+        </header>
+
+        <ul>
+          <li *ngFor="let feature of plan.features">{{ feature }}</li>
+        </ul>
+
+        @if (isCurrent(plan)) {
+          <button class="btn current" type="button" disabled>Plano atual</button>
+        } @else if (canUpgrade(plan)) {
+          <button
+            class="btn"
+            type="button"
+            [disabled]="checkoutLoadingPlan() === plan.plan"
+            (click)="checkout(plan)">
+            {{ checkoutLoadingPlan() === plan.plan ? 'Iniciando...' : 'Atualizar plano' }}
+          </button>
+        } @else {
+          <button class="btn" type="button" disabled>Redução de plano indisponível</button>
+        }
+      </article>
+    </section>
+
+    <section class="provider-note">
+      <strong>Fase 9:</strong> provider fake ativo para validação de fluxo.
+      <span>TODO técnico: habilitar Stripe real no backend (checkout + webhook assinado).</span>
+    </section>
+  }
 </section>

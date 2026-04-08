@@ -44,6 +44,7 @@ public class DomainRulesTests
     {
         LotUrlGuard.IsValidLotUrl("https://meu-leiloeiro.com/").Should().BeFalse();
         LotUrlGuard.IsValidLotUrl("https://meu-leiloeiro.com/home").Should().BeFalse();
+        LotUrlGuard.IsValidLotUrl("https://superbid.example/lote/12345").Should().BeFalse();
         LotUrlGuard.IsValidLotUrl("https://meu-leiloeiro.com/lote/12345").Should().BeTrue();
     }
 

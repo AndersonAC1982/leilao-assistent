@@ -14,7 +14,7 @@ public class StubBillingGateway : IBillingGateway
 
     public Task RegisterSearchAsync(Guid userId, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Billing stub recebeu evento de busca do usuário {UserId}.", userId);
+        _logger.LogInformation("Billing stub captured search event for user {UserId}.", userId);
         return Task.CompletedTask;
     }
 }

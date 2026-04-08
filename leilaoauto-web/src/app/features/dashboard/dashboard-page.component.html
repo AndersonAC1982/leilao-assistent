@@ -1,34 +1,34 @@
-<section class="page">
+﻿<section class="page">
   <header>
-    <h2>Dashboard</h2>
-    <p>Quick view of your account and monitoring workflow.</p>
+    <h2>Painel</h2>
+    <p>Visão rápida da sua conta e do fluxo de monitoramento.</p>
   </header>
 
   @if (authService.currentUser(); as me) {
     <article class="profile-card">
-      <h3>Signed-in account</h3>
-      <p><strong>Email:</strong> {{ me.email }}</p>
-      <p><strong>Role:</strong> {{ roleLabels[me.role] }}</p>
-      <p><strong>Plan:</strong> {{ planLabels[me.plan] }}</p>
-      <p><strong>Created:</strong> {{ me.createdAt | date: 'medium' }}</p>
+      <h3>Conta conectada</h3>
+      <p><strong>E-mail:</strong> {{ me.email }}</p>
+      <p><strong>Perfil:</strong> {{ roleLabels[me.role] }}</p>
+      <p><strong>Plano:</strong> {{ planLabels[me.plan] }}</p>
+      <p><strong>Criada em:</strong> {{ me.createdAt | date: 'medium' }}</p>
     </article>
   }
 
   <div class="cards">
     <article>
-      <h3>Authentication</h3>
-      <p>JWT login, registration and /api/auth/me are now active.</p>
+      <h3>Autenticação</h3>
+      <p>Login JWT, cadastro e endpoint /api/auth/me ativos.</p>
     </article>
 
     <article>
-      <h3>Monitoring</h3>
-      <p>Manage up to 4 monitored vehicles with create, update and delete operations.</p>
-      <a routerLink="/monitoring">Open monitoring</a>
+      <h3>Monitoramento</h3>
+      <p>Gerencie até 4 veículos monitorados com operações de cadastro, edição e exclusão.</p>
+      <a routerLink="/monitoring">Abrir monitoramento</a>
     </article>
 
     <article>
-      <h3>Error model</h3>
-      <p>Validation and business errors are returned as ProblemDetails.</p>
+      <h3>Modelo de erro</h3>
+      <p>Erros de validação e negócio são retornados no padrão ProblemDetails.</p>
     </article>
   </div>
 
@@ -36,22 +36,24 @@
     <h3>Top oportunidades ativas</h3>
 
     @if (loadingLots()) {
-      <p>Loading lot cards...</p>
+      <p>Carregando cartões de lotes...</p>
     } @else if (lotCards().length === 0) {
-      <p>No active lot cards available.</p>
+      <p>Nenhum lote ativo disponível no momento.</p>
     } @else {
       <div class="lot-grid">
         @for (lot of lotCards(); track lot.id) {
           <article class="lot-card">
             <h4>{{ lot.title }}</h4>
             <p><strong>Fonte:</strong> {{ lot.source }}</p>
-            <p><strong>Preco:</strong> {{ (lot.currentBid ?? lot.finalPrice ?? 0) | currency: 'BRL' : 'symbol' : '1.2-2' }}</p>
+            <p><strong>Preço:</strong> {{ (lot.currentBid ?? lot.finalPrice ?? 0) | currency: 'BRL' : 'symbol' : '1.2-2' }}</p>
             <p><strong>Status:</strong> {{ statusLabels[lot.status] }}</p>
-            <p><strong>Oportunidade:</strong> {{ lot.opportunityLabel }} ({{ lot.opportunityScore | number: '1.0-2' }})</p>
-            <p><strong>Risco:</strong> {{ lot.riskDecision }} ({{ lot.riskScore | number: '1.0-2' }})</p>
+            <p><strong>Oportunidade:</strong> {{ opportunityLabel(lot.opportunityLabel) }} ({{ lot.opportunityScore | number: '1.0-2' }})</p>
+            <p><strong>Risco:</strong> {{ riskDecisionLabel(lot.riskDecision) }} ({{ lot.riskScore | number: '1.0-2' }})</p>
 
             @if (hasValidLotUrl(lot.lotUrl)) {
               <a [href]="lot.lotUrl" target="_blank" rel="noopener noreferrer">Abrir lote</a>
+            } @else {
+              <small>URL real do lote indisponível neste ambiente de demonstração.</small>
             }
           </article>
         }
@@ -59,3 +61,4 @@
     }
   </section>
 </section>
+

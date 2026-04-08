@@ -1,10 +1,12 @@
-import { CommonModule, CurrencyPipe, DecimalPipe } from '@angular/common';
+﻿import { CommonModule, CurrencyPipe, DecimalPipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 import { ModelAveragePrice, Opportunity, RiskSummary } from '../../core/models/analytics.models';
 import { LeilaoApiService } from '../../core/services/leilao-api.service';
+import { isValidLotUrl } from '../../shared/utils/lot-url-validator';
+import { toDamageLevelLabel, toOpportunityLabel, toRiskDecisionLabel } from '../../shared/utils/scoring-labels';
 
 @Component({
   selector: 'app-analytics-page',
@@ -40,6 +42,22 @@ export class AnalyticsPageComponent implements OnInit {
     this.loadAnalytics();
   }
 
+  protected opportunityLabel(label: string | null | undefined): string {
+    return toOpportunityLabel(label);
+  }
+
+  protected riskDecisionLabel(decision: string | null | undefined): string {
+    return toRiskDecisionLabel(decision);
+  }
+
+  protected damageLevelLabel(level: string | null | undefined): string {
+    return toDamageLevelLabel(level);
+  }
+
+  protected hasValidLotUrl(url: string | null | undefined): boolean {
+    return isValidLotUrl(url);
+  }
+
   private loadAnalytics(): void {
     const model = this.form.getRawValue().model.trim();
     const filter = model.length > 0 ? model : undefined;
@@ -63,8 +81,9 @@ export class AnalyticsPageComponent implements OnInit {
           this.averages.set([]);
           this.opportunities.set([]);
           this.riskSummary.set(null);
-          this.errorMessage.set('Could not load analytics right now. Try again in a few seconds.');
+          this.errorMessage.set('Não foi possível carregar as análises agora. Tente novamente em alguns segundos.');
         }
       });
   }
 }
+

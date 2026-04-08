@@ -1,4 +1,5 @@
 using LeilaoAuto.Application.Abstractions.External;
+using LeilaoAuto.Api.Authorization;
 using LeilaoAuto.Application.Contracts.Connectors;
 using LeilaoAuto.Application.Contracts.Lots;
 using LeilaoAuto.Domain.Enums;
@@ -8,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace LeilaoAuto.Api.Controllers;
 
 [ApiController]
-[Authorize]
+[Authorize(Policy = PlanPolicies.EliteOnly)]
 [Route("api/connectors")]
 public class ConnectorsController : ControllerBase
 {

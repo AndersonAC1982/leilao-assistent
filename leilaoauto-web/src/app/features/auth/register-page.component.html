@@ -1,32 +1,32 @@
-<main class="auth-shell">
+﻿<main class="auth-shell">
   <section class="auth-card">
-    <h1>Create Account</h1>
-    <p>Start monitoring up to 4 vehicles in your LEILAOAUTO workspace.</p>
+    <h1>Criar conta</h1>
+    <p>Comece a monitorar até 4 veículos no seu workspace do LEILAOAUTO.</p>
 
     <form [formGroup]="form" (ngSubmit)="submit()">
       <label>
-        Email
-        <input type="email" formControlName="email" placeholder="you@example.com" />
+        E-mail
+        <input type="email" formControlName="email" placeholder="voce@exemplo.com" />
       </label>
 
       <label>
-        Password
-        <input type="password" formControlName="password" placeholder="At least 8 characters" />
+        Senha
+        <input type="password" formControlName="password" placeholder="Pelo menos 8 caracteres" />
       </label>
 
       <label>
-        Confirm password
-        <input type="password" formControlName="confirmPassword" placeholder="Repeat the password" />
+        Confirmar senha
+        <input type="password" formControlName="confirmPassword" placeholder="Repita a senha" />
       </label>
 
       <div class="actions">
-        <button type="submit" [disabled]="loading()">Create Account</button>
+        <button type="submit" [disabled]="loading()">Criar conta</button>
       </div>
     </form>
 
     <p class="link-text">
-      Already registered?
-      <a routerLink="/login">Sign in</a>
+      Já possui cadastro?
+      <a routerLink="/login">Entrar</a>
     </p>
 
     @if (errorMessage()) {
@@ -34,3 +34,4 @@
     }
   </section>
 </main>
+

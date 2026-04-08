@@ -13,6 +13,11 @@ import {
   RiskSummary
 } from '../models/analytics.models';
 import { Lot, LotSearchFilterRequest, LotSearchResult } from '../models/lot.models';
+import {
+  BillingCheckoutRequest,
+  BillingCheckoutResponse,
+  BillingPlanResponse
+} from '../models/billing.models';
 
 @Injectable({ providedIn: 'root' })
 export class LeilaoApiService {
@@ -80,6 +85,14 @@ export class LeilaoApiService {
     return this.http.get<RiskSummary>(`${this.apiBaseUrl}/analytics/risk-summary`, {
       params: this.toHttpParams({ model })
     });
+  }
+
+  getBillingPlan(): Observable<BillingPlanResponse> {
+    return this.http.get<BillingPlanResponse>(`${this.apiBaseUrl}/billing/plan`);
+  }
+
+  checkoutBilling(request: BillingCheckoutRequest): Observable<BillingCheckoutResponse> {
+    return this.http.post<BillingCheckoutResponse>(`${this.apiBaseUrl}/billing/checkout`, request);
   }
 
   private toHttpParams(source: object): HttpParams {

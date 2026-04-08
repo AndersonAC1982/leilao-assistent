@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 
@@ -18,7 +18,8 @@ export class SettingsPageComponent {
   });
 
   protected save(): void {
-    // TODO: Persist user settings in next phase.
-    console.log('Settings draft', this.form.getRawValue());
+    // TODO: Persistir configurações do usuário na próxima fase.
+    console.log('Rascunho de configurações', this.form.getRawValue());
   }
 }
+

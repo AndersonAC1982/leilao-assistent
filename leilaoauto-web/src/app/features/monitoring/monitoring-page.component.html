@@ -1,30 +1,30 @@
-<section class="page">
+﻿<section class="page">
   <header class="heading">
-    <h2>Monitoring</h2>
-    <p>Manage your tracked vehicles. Limit: 4 per user.</p>
+    <h2>Monitoramento</h2>
+    <p>Gerencie seus veículos monitorados. Limite: 4 por usuário.</p>
   </header>
 
   <article class="panel">
-    <h3>{{ editingId() ? 'Edit monitored vehicle' : 'Add monitored vehicle' }}</h3>
+    <h3>{{ editingId() ? 'Editar veículo monitorado' : 'Adicionar veículo monitorado' }}</h3>
 
     <form [formGroup]="form" class="grid" (ngSubmit)="submit()">
       <label>
-        Brand
+        Marca
         <input formControlName="brand" placeholder="Toyota" />
       </label>
 
       <label>
-        Model
+        Modelo
         <input formControlName="model" placeholder="Corolla XEi" />
       </label>
 
       <label>
-        Year
+        Ano
         <input type="number" formControlName="year" placeholder="2022" />
       </label>
 
       <label>
-        Type
+        Tipo
         <select formControlName="type">
           @for (option of typeOptions; track option.value) {
             <option [value]="option.value">{{ option.label }}</option>
@@ -38,7 +38,7 @@
       </label>
 
       <label>
-        Vehicle state
+        Estado do veículo
         <select formControlName="vehicleState">
           @for (option of stateOptions; track option.value) {
             <option [value]="option.value">{{ option.label }}</option>
@@ -48,27 +48,27 @@
 
       <div class="actions">
         <button type="submit" [disabled]="saving() || (!editingId() && !canCreateMore())">
-          {{ editingId() ? 'Save changes' : 'Add vehicle' }}
+          {{ editingId() ? 'Salvar alterações' : 'Adicionar veículo' }}
         </button>
 
         @if (editingId()) {
-          <button type="button" class="secondary" (click)="cancelEdit()" [disabled]="saving()">Cancel</button>
+          <button type="button" class="secondary" (click)="cancelEdit()" [disabled]="saving()">Cancelar</button>
         }
       </div>
     </form>
 
     @if (!editingId() && !canCreateMore()) {
-      <p class="hint">You already reached the 4 monitored vehicles limit.</p>
+      <p class="hint">Você já atingiu o limite de 4 veículos monitorados.</p>
     }
   </article>
 
   <article class="panel">
-    <h3>Your monitored vehicles</h3>
+    <h3>Seus veículos monitorados</h3>
 
     @if (loading()) {
-      <p>Loading vehicles...</p>
+      <p>Carregando veículos...</p>
     } @else if (vehicles().length === 0) {
-      <p>No monitored vehicles yet.</p>
+      <p>Ainda não há veículos monitorados.</p>
     } @else {
       <ul class="vehicle-list">
         @for (vehicle of vehicles(); track trackByVehicle($index, vehicle)) {
@@ -79,8 +79,8 @@
             </div>
 
             <div class="item-actions">
-              <button type="button" class="secondary" (click)="editVehicle(vehicle)" [disabled]="saving()">Edit</button>
-              <button type="button" class="danger" (click)="removeVehicle(vehicle.id)" [disabled]="saving()">Delete</button>
+              <button type="button" class="secondary" (click)="editVehicle(vehicle)" [disabled]="saving()">Editar</button>
+              <button type="button" class="danger" (click)="removeVehicle(vehicle.id)" [disabled]="saving()">Excluir</button>
             </div>
           </li>
         }
@@ -92,3 +92,4 @@
     <p class="error">{{ errorMessage() }}</p>
   }
 </section>
+

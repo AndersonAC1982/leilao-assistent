@@ -25,6 +25,13 @@ public static class DependencyInjection
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
         services.Configure<AuctionProviderOptions>(configuration.GetSection(AuctionProviderOptions.SectionName));
         services.Configure<FipeOptions>(configuration.GetSection(FipeOptions.SectionName));
+        services.AddOptions<BillingProviderOptions>()
+            .Bind(configuration.GetSection(BillingProviderOptions.SectionName))
+            .Validate(options =>
+                options.Provider.Equals("Fake", StringComparison.OrdinalIgnoreCase)
+                || options.Provider.Equals("Stripe", StringComparison.OrdinalIgnoreCase),
+                "Billing:Provider must be Fake or Stripe.")
+            .ValidateOnStart();
 
         services.AddDbContext<LeilaoAutoDbContext>(options =>
             options.UseNpgsql(connectionString));
@@ -42,6 +49,15 @@ public static class DependencyInjection
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
 
         services.AddScoped<IBillingGateway, StubBillingGateway>();
+        services.AddScoped<FakeBillingProvider>();
+        services.AddScoped<StripeBillingProvider>();
+        services.AddScoped<IBillingProvider>(provider =>
+        {
+            var options = provider.GetRequiredService<IOptions<BillingProviderOptions>>().Value;
+            return options.Provider.Equals("Stripe", StringComparison.OrdinalIgnoreCase)
+                ? provider.GetRequiredService<StripeBillingProvider>()
+                : provider.GetRequiredService<FakeBillingProvider>();
+        });
         services.AddScoped<IAlertPublisher, StubAlertPublisher>();
         services.AddScoped<IAuctionProviderClient, AuctionProviderClient>();
 
