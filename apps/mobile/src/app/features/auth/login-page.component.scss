@@ -1,0 +1,45 @@
+﻿.auth-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.card {
+  width: min(360px, 100%);
+  border: 1px solid #2a3d55;
+  border-radius: 12px;
+  background: #0f1a27;
+  padding: 0.9rem;
+}
+
+h2 {
+  margin: 0 0 0.7rem;
+}
+
+form {
+  display: grid;
+  gap: 0.45rem;
+}
+
+input {
+  border-radius: 10px;
+  border: 1px solid #2f445d;
+  background: #0f1824;
+  color: #e2edf6;
+  padding: 0.5rem 0.64rem;
+}
+
+button {
+  border: none;
+  border-radius: 10px;
+  padding: 0.52rem;
+  font-weight: 700;
+  color: #061018;
+  background: linear-gradient(90deg, #4de8a9, #37d39f);
+}
+
+.error {
+  margin: 0.6rem 0 0;
+  color: #ffb7b3;
+}

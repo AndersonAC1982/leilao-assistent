@@ -1,0 +1,67 @@
+﻿<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LEILAOAUTO</title>
+    <link rel="stylesheet" href="sidepanel.css" />
+  </head>
+  <body>
+    <main class="panel">
+      <section class="block header-block">
+        <div>
+          <h1>LEILAOAUTO</h1>
+          <p>Scanner rapido de oportunidades</p>
+        </div>
+        <button id="run-now-button" class="primary">Rodar agora</button>
+      </section>
+
+      <section class="block auth-block" id="auth-block">
+        <h2>Acesso</h2>
+        <form id="login-form" class="auth-form">
+          <input id="email-input" type="email" placeholder="E-mail" required />
+          <input id="password-input" type="password" placeholder="Senha" required />
+          <button type="submit" class="primary">Entrar</button>
+        </form>
+        <div id="session-view" class="hidden">
+          <p id="session-email" class="muted"></p>
+          <button id="logout-button" class="ghost">Sair</button>
+        </div>
+      </section>
+
+      <section class="block" id="status-block">
+        <h2>Status</h2>
+        <div class="status-grid" id="status-grid"></div>
+      </section>
+
+      <section class="block" id="filters-block">
+        <h2>Filtros</h2>
+        <div class="filters-grid">
+          <input id="search-input" type="text" placeholder="Busca geral" />
+          <input id="source-input" type="text" placeholder="Fonte" />
+          <input id="score-input" type="number" min="0" max="100" placeholder="Score min" />
+          <input id="type-input" type="number" min="1" placeholder="Tipo" />
+          <input id="region-input" type="text" maxlength="2" placeholder="UF" />
+        </div>
+        <div class="row-actions">
+          <button id="apply-filters-button" class="primary">Aplicar</button>
+          <button id="save-settings-button" class="ghost">Configurar</button>
+        </div>
+      </section>
+
+      <section class="block" id="opportunities-block">
+        <h2>Oportunidades</h2>
+        <div id="opportunities-list" class="list"></div>
+      </section>
+
+      <section class="block" id="history-block">
+        <h2>Historico</h2>
+        <div id="history-list" class="history-list"></div>
+      </section>
+
+      <p id="feedback" class="feedback"></p>
+    </main>
+
+    <script type="module" src="sidepanel.js"></script>
+  </body>
+</html>

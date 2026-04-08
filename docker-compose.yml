@@ -19,7 +19,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: LeilaoAuto.Api/Dockerfile
+      dockerfile: backend/LeilaoAuto.Api/Dockerfile
     container_name: leilaoauto-api
     depends_on:
       postgres:
@@ -34,6 +34,8 @@ services:
       Jwt__ExpiresMinutes: 180
       Cors__AllowedOrigins__0: http://localhost:4200
       Cors__AllowedOrigins__1: http://127.0.0.1:4200
+      Cors__AllowedOrigins__2: http://localhost:4300
+      Cors__AllowedOrigins__3: http://127.0.0.1:4300
       Http__UseHttpsRedirection: "false"
       Fipe__Enabled: "true"
       Fipe__BaseUrl: https://brasilapi.com.br
@@ -48,7 +50,7 @@ services:
   worker:
     build:
       context: .
-      dockerfile: LeilaoAuto.Workers/Dockerfile
+      dockerfile: backend/LeilaoAuto.Workers/Dockerfile
     container_name: leilaoauto-worker
     depends_on:
       postgres:
@@ -75,7 +77,7 @@ services:
     profiles: ["frontend"]
     build:
       context: .
-      dockerfile: leilaoauto-web/Dockerfile
+      dockerfile: apps/web/Dockerfile
     container_name: leilaoauto-web
     depends_on:
       api:

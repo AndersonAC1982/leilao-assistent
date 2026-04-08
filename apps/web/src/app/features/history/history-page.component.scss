@@ -1,0 +1,31 @@
+.page {
+  display: grid;
+  gap: 0.9rem;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+p {
+  margin: 0.24rem 0 0;
+  color: #9db5cc;
+}
+
+button {
+  border: none;
+  border-radius: 10px;
+  padding: 0.56rem 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  color: #061018;
+  background: linear-gradient(90deg, #4de8a9, #37d39f);
+}

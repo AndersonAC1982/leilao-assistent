@@ -1,0 +1,90 @@
+<section class="page">
+  <header class="heading">
+    <h2>Resultados operacionais</h2>
+    <p>Busca rapida com foco em lotes ativos, historico encerrado e media por modelo.</p>
+  </header>
+
+  <section class="panel">
+    <h3>Buscar</h3>
+
+    <la-filter-bar [form]="filtersForm" (apply)="search()" (reset)="clearFilters()" />
+
+    <div class="advanced-grid">
+      <label>
+        Marca
+        <input [formControl]="filtersForm.controls.make" placeholder="Toyota" />
+      </label>
+      <label>
+        Modelo
+        <input [formControl]="filtersForm.controls.model" placeholder="Corolla XEi" />
+      </label>
+      <label>
+        Ano
+        <input type="number" [formControl]="filtersForm.controls.year" placeholder="2020" />
+      </label>
+      <label>
+        UF
+        <input [formControl]="filtersForm.controls.uf" maxlength="2" placeholder="SP" />
+      </label>
+      <label>
+        Estado do veiculo
+        <input
+          type="number"
+          [formControl]="filtersForm.controls.vehicleCondition"
+          placeholder="1" />
+      </label>
+    </div>
+
+    <button type="button" class="action" (click)="search()" [disabled]="loading()">Buscar agora</button>
+  </section>
+
+  @if (errorMessage()) {
+    <p class="error">{{ errorMessage() }}</p>
+  }
+
+  <section class="panel">
+    <h3>Em andamento</h3>
+    @if (loading()) {
+      <la-loading-state message="Carregando lotes ativos..." />
+    } @else if (activeCards().length === 0) {
+      <la-empty-state title="Nenhum lote ativo" message="Ajuste filtros e rode uma nova busca." />
+    } @else {
+      <div class="grid">
+        @for (item of activeCards(); track item.title + item.source + item.dateUtc) {
+          <la-opportunity-card [item]="item" />
+        }
+      </div>
+    }
+  </section>
+
+  <section class="panel">
+    <h3>Encerrados / media</h3>
+    @if (loading()) {
+      <la-loading-state message="Carregando historico encerrado..." />
+    } @else if (closedCards().length === 0) {
+      <la-empty-state title="Sem historico encerrado" message="Nao ha lotes encerrados para este filtro." />
+    } @else {
+      <div class="grid">
+        @for (item of closedCards(); track item.title + item.source + item.dateUtc) {
+          <la-opportunity-card [item]="item" />
+        }
+      </div>
+    }
+
+    <h4>Faixa e media por modelo</h4>
+    @if (averages().length === 0) {
+      <la-empty-state title="Sem medias" message="Nenhum grupo comparavel para os filtros atuais." />
+    } @else {
+      <div class="average-grid">
+        @for (avg of averages(); track avg.comparableModel) {
+          <article>
+            <strong>{{ avg.comparableModel }}</strong>
+            <p>Media: R$ {{ avg.averagePrice | number: '1.2-2' }}</p>
+            <p>Faixa: R$ {{ avg.minPrice | number: '1.2-2' }} - R$ {{ avg.maxPrice | number: '1.2-2' }}</p>
+            <p>Amostras: {{ avg.quantity }}</p>
+          </article>
+        }
+      </div>
+    }
+  </section>
+</section>

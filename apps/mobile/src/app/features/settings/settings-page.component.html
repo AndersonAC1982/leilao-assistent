@@ -1,0 +1,19 @@
+﻿<section class="page">
+  <h2>Configuracoes</h2>
+
+  @if (loading()) {
+    <p>Carregando...</p>
+  }
+
+  <form [formGroup]="form" (ngSubmit)="save()">
+    <input formControlName="search" placeholder="Busca" />
+    <input formControlName="source" placeholder="Fonte" />
+    <input formControlName="minScore" type="number" min="0" max="100" placeholder="Score" />
+    <input formControlName="region" maxlength="2" placeholder="UF" />
+    <button type="submit" [disabled]="saving()">{{ saving() ? 'Salvando...' : 'Salvar' }}</button>
+  </form>
+
+  @if (status()) {
+    <p class="status">{{ status() }}</p>
+  }
+</section>

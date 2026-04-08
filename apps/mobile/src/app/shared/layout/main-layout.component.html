@@ -1,0 +1,16 @@
+﻿<div class="shell">
+  <header>
+    <h1>LEILAOAUTO Mobile</h1>
+    <button type="button" (click)="logout()">Sair</button>
+  </header>
+
+  <nav>
+    <a routerLink="/opportunities" routerLinkActive="active">Oportunidades</a>
+    <a routerLink="/history" routerLinkActive="active">Historico</a>
+    <a routerLink="/settings" routerLinkActive="active">Configuracoes</a>
+  </nav>
+
+  <main>
+    <router-outlet />
+  </main>
+</div>

@@ -1,0 +1,37 @@
+﻿{
+  "name": "leilaoauto-mobile",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve --port 4300",
+    "build": "ng build",
+    "sync:android": "npm run build && npx cap sync android",
+    "sync:ios": "npm run build && npx cap sync ios"
+  },
+  "packageManager": "npm@11.6.2",
+  "dependencies": {
+    "@angular/common": "^21.2.0",
+    "@angular/compiler": "^21.2.0",
+    "@angular/core": "^21.2.0",
+    "@angular/forms": "^21.2.0",
+    "@angular/platform-browser": "^21.2.0",
+    "@angular/router": "^21.2.0",
+    "@leilaoauto/shared-core": "file:../../packages/shared-core",
+    "@leilaoauto/shared-services": "file:../../packages/shared-services",
+    "@leilaoauto/shared-types": "file:../../packages/shared-types",
+    "@leilaoauto/shared-ui": "file:../../packages/shared-ui",
+    "@capacitor/core": "^8.0.0",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@angular/build": "^21.2.6",
+    "@angular/cli": "^21.2.6",
+    "@angular/compiler-cli": "^21.2.0",
+    "@capacitor/cli": "^8.0.0",
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/ios": "^8.0.0",
+    "typescript": "~5.9.2"
+  }
+}

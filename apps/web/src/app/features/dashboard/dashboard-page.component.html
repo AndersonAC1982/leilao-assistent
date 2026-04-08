@@ -1,0 +1,50 @@
+<section class="page">
+  <la-app-header
+    title="LEILAOAUTO Assistente"
+    subtitle="Canal principal extension-first com operacao rapida e objetiva."
+    actionLabel="Rodar agora"
+    [actionDisabled]="running()"
+    (action)="runNow()" />
+
+  @if (infoMessage()) {
+    <p class="status info">{{ infoMessage() }}</p>
+  }
+
+  @if (errorMessage()) {
+    <p class="status error">{{ errorMessage() }}</p>
+  }
+
+  <la-status-chips [chips]="statusChips()" />
+
+  <section class="panel">
+    <h3>Oportunidades</h3>
+    @if (loading()) {
+      <la-loading-state message="Atualizando oportunidades..." />
+    } @else if (topCards().length === 0) {
+      <la-empty-state
+        title="Sem oportunidades no momento"
+        message="Rode uma varredura para localizar novos lotes."
+      />
+    } @else {
+      <div class="grid">
+        @for (item of topCards(); track item.title + item.source + item.dateUtc) {
+          <la-opportunity-card [item]="item" />
+        }
+      </div>
+    }
+  </section>
+
+  <section class="panel">
+    <h3>Historico de execucoes</h3>
+    @if (loading()) {
+      <la-loading-state message="Atualizando historico..." />
+    } @else if (history().length === 0) {
+      <la-empty-state
+        title="Sem historico recente"
+        message="As ultimas varreduras e conectores aparecerao aqui."
+      />
+    } @else {
+      <la-history-list [items]="history()" />
+    }
+  </section>
+</section>

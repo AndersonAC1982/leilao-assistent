@@ -1,0 +1,13 @@
+﻿<main class="auth-shell">
+  <section class="card">
+    <h2>Entrar</h2>
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <input type="email" formControlName="email" placeholder="E-mail" />
+      <input type="password" formControlName="password" placeholder="Senha" />
+      <button type="submit" [disabled]="loading()">{{ loading() ? 'Entrando...' : 'Entrar' }}</button>
+    </form>
+    @if (errorMessage()) {
+      <p class="error">{{ errorMessage() }}</p>
+    }
+  </section>
+</main>

@@ -1,0 +1,14 @@
+﻿<section class="page">
+  <header>
+    <h2>Historico</h2>
+    <button type="button" (click)="reload()" [disabled]="loading()">Atualizar</button>
+  </header>
+
+  @if (loading()) {
+    <la-loading-state message="Carregando historico..." />
+  } @else if (items().length === 0) {
+    <la-empty-state title="Sem historico" message="Nenhuma execucao recente registrada." />
+  } @else {
+    <la-history-list [items]="items()" />
+  }
+</section>

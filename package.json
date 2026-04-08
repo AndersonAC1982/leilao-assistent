@@ -1,0 +1,15 @@
+﻿{
+  "name": "@leilaoauto/monorepo",
+  "private": true,
+  "workspaces": [
+    "apps/web",
+    "packages/*"
+  ],
+  "scripts": {
+    "web:install": "npm --prefix apps/web ci",
+    "web:start": "npm --prefix apps/web start",
+    "web:build": "npm --prefix apps/web run build",
+    "backend:build": "dotnet build backend/LeilaoAuto.sln",
+    "backend:test": "dotnet test backend/LeilaoAuto.Tests/LeilaoAuto.Tests.csproj"
+  }
+}

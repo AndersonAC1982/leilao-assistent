@@ -1,0 +1,22 @@
+<section class="page">
+  <header>
+    <div>
+      <h2>Historico</h2>
+      <p>Ultimas execucoes de varredura e conectores.</p>
+    </div>
+    <button type="button" (click)="refresh()" [disabled]="loading()">Atualizar</button>
+  </header>
+
+  @if (loading()) {
+    <la-loading-state message="Carregando historico..." />
+  } @else if (errorMessage()) {
+    <la-empty-state title="Falha no historico" [message]="errorMessage()!" />
+  } @else if (items().length === 0) {
+    <la-empty-state
+      title="Sem execucoes recentes"
+      message="Rode uma varredura para gerar historico operacional."
+    />
+  } @else {
+    <la-history-list [items]="items()" />
+  }
+</section>

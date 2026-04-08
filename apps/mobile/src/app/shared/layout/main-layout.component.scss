@@ -1,0 +1,56 @@
+﻿.shell {
+  min-height: 100vh;
+  padding: 0.7rem;
+  display: grid;
+  gap: 0.6rem;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid #2a3d55;
+  border-radius: 12px;
+  background: #0f1a27;
+  padding: 0.6rem;
+}
+
+h1 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+button {
+  border: none;
+  border-radius: 10px;
+  padding: 0.44rem 0.62rem;
+  font-weight: 700;
+  color: #061018;
+  background: linear-gradient(90deg, #4de8a9, #37d39f);
+}
+
+nav {
+  display: grid;
+  gap: 0.4rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+nav a {
+  text-align: center;
+  text-decoration: none;
+  border: 1px solid #2a3d55;
+  border-radius: 10px;
+  background: #111d2b;
+  color: #d8e6f4;
+  padding: 0.45rem;
+  font-size: 0.84rem;
+}
+
+nav a.active {
+  color: #061018;
+  background: linear-gradient(90deg, #6ad4ff, #4de8a9);
+}
+
+main {
+  display: block;
+}

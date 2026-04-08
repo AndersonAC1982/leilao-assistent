@@ -1,0 +1,54 @@
+<section class="page">
+  <header>
+    <h2>Configuracoes</h2>
+    <p>Preferencias operacionais compartilhadas entre extensao, web e app.</p>
+  </header>
+
+  @if (loading()) {
+    <p class="loading">Carregando configuracoes...</p>
+  }
+
+  @if (errorMessage()) {
+    <p class="status error">{{ errorMessage() }}</p>
+  }
+
+  @if (message()) {
+    <p class="status ok">{{ message() }}</p>
+  }
+
+  <form [formGroup]="form" class="grid" (ngSubmit)="save()">
+    <label>
+      Busca geral padrao
+      <input formControlName="search" />
+    </label>
+
+    <label>
+      Fonte preferida
+      <input formControlName="source" />
+    </label>
+
+    <label>
+      Score minimo
+      <input formControlName="minScore" type="number" min="0" max="100" />
+    </label>
+
+    <label>
+      Tipo de veiculo (id)
+      <input formControlName="vehicleType" type="number" min="1" />
+    </label>
+
+    <label>
+      Regiao/UF padrao
+      <input formControlName="region" maxlength="2" />
+    </label>
+
+    <label class="switch">
+      <input type="checkbox" formControlName="advancedFiltersEnabled" />
+      Habilitar filtros avancados
+    </label>
+
+    <button type="submit" [disabled]="saving()">
+      {{ saving() ? 'Salvando...' : 'Salvar configuracoes' }}
+    </button>
+  </form>
+</section>
