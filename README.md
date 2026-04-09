@@ -6,6 +6,7 @@ Status atual desta entrega:
 
 - Etapa 2: reorganizacao inicial do monorepo
 - Etapa 3: base funcional da extensao Chrome (canal principal)
+- Foco MVP extensao: settings persistidos em banco + endpoints facade estabilizados
 
 ## Estrutura atual do monorepo
 
@@ -129,3 +130,7 @@ dotnet build backend/LeilaoAuto.sln
 dotnet test backend/LeilaoAuto.Tests/LeilaoAuto.Tests.csproj
 npm --prefix apps/web run build
 ```
+
+## Diagnostico MVP extensao
+
+- detalhes tecnicos: `docs/MVP_EXTENSAO_DIAGNOSTICO.md`

@@ -1,4 +1,3 @@
-﻿using System.Collections.Concurrent;
 using System.Text.Json;
 using LeilaoAuto.Application.Abstractions.Persistence;
 using LeilaoAuto.Application.Abstractions.Services;
@@ -12,18 +11,18 @@ namespace LeilaoAuto.Application.Services;
 
 public sealed class ExperienceService : IExperienceService
 {
-    // TODO: persist user settings in dedicated table (currently in-memory scaffold for extension-first flow).
-    private static readonly ConcurrentDictionary<Guid, UserSettingsDto> UserSettingsStore = new();
-
     private readonly ILotService _lotService;
     private readonly IConnectorExecutionLogRepository _connectorExecutionLogRepository;
+    private readonly IUserSettingsRepository _userSettingsRepository;
 
     public ExperienceService(
         ILotService lotService,
-        IConnectorExecutionLogRepository connectorExecutionLogRepository)
+        IConnectorExecutionLogRepository connectorExecutionLogRepository,
+        IUserSettingsRepository userSettingsRepository)
     {
         _lotService = lotService;
         _connectorExecutionLogRepository = connectorExecutionLogRepository;
+        _userSettingsRepository = userSettingsRepository;
     }
 
     public async Task<IReadOnlyList<OpportunityFeedItemDto>> GetOpportunitiesAsync(
@@ -90,7 +89,8 @@ public sealed class ExperienceService : IExperienceService
                     recordsRead: refreshed,
                     recordsSaved: refreshed,
                     message: "Manual scanner run from extension/web/mobile facade.",
-                    payloadJson: payload),
+                    payloadJson: payload,
+                    userId: userId),
                 cancellationToken);
 
             await _connectorExecutionLogRepository.SaveChangesAsync(cancellationToken);
@@ -122,7 +122,8 @@ public sealed class ExperienceService : IExperienceService
                     recordsRead: 0,
                     recordsSaved: 0,
                     message: exception.Message,
-                    payloadJson: payload),
+                    payloadJson: payload,
+                    userId: userId),
                 cancellationToken);
 
             await _connectorExecutionLogRepository.SaveChangesAsync(cancellationToken);
@@ -136,10 +137,10 @@ public sealed class ExperienceService : IExperienceService
         }
     }
 
-    public async Task<IReadOnlyList<HistoryItemDto>> GetHistoryAsync(int take, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<HistoryItemDto>> GetHistoryAsync(Guid userId, int take, CancellationToken cancellationToken)
     {
         var safeTake = Math.Clamp(take, 1, 30);
-        var logs = await _connectorExecutionLogRepository.GetRecentAsync(safeTake, cancellationToken);
+        var logs = await _connectorExecutionLogRepository.GetRecentByUserIdAsync(userId, safeTake, cancellationToken);
 
         return logs
             .Select(log => new HistoryItemDto(
@@ -155,28 +156,51 @@ public sealed class ExperienceService : IExperienceService
             .ToList();
     }
 
-    public Task<UserSettingsDto> GetSettingsAsync(Guid userId, CancellationToken cancellationToken)
+    public async Task<UserSettingsDto> GetSettingsAsync(Guid userId, CancellationToken cancellationToken)
     {
-        var settings = UserSettingsStore.GetOrAdd(userId, _ => DefaultSettings());
-        return Task.FromResult(settings);
+        return await GetOrCreateSettingsAsync(userId, cancellationToken);
     }
 
-    public Task<UserSettingsDto> UpdateSettingsAsync(
+    public async Task<UserSettingsDto> UpdateSettingsAsync(
         Guid userId,
         UpdateUserSettingsRequest request,
         CancellationToken cancellationToken)
     {
-        var updated = new UserSettingsDto(
-            request.Search?.Trim() ?? string.Empty,
-            request.Source?.Trim() ?? string.Empty,
-            Math.Clamp(request.MinScore, 0, 100),
-            request.VehicleType,
-            string.IsNullOrWhiteSpace(request.Region) ? null : request.Region.Trim().ToUpperInvariant(),
-            request.AdvancedFiltersEnabled,
-            DateTimeOffset.UtcNow);
+        var now = DateTime.UtcNow;
+        var minScore = Math.Clamp(request.MinScore, 0, 100);
+        var normalizedRegion = string.IsNullOrWhiteSpace(request.Region) ? null : request.Region.Trim().ToUpperInvariant();
 
-        UserSettingsStore.AddOrUpdate(userId, updated, (_, _) => updated);
-        return Task.FromResult(updated);
+        var existing = await _userSettingsRepository.GetByUserIdAsync(userId, cancellationToken);
+        if (existing is null)
+        {
+            var created = new UserSettings(
+                userId,
+                request.Search ?? string.Empty,
+                request.Source ?? string.Empty,
+                minScore,
+                request.VehicleType,
+                normalizedRegion,
+                request.AdvancedFiltersEnabled,
+                now);
+
+            await _userSettingsRepository.AddAsync(created, cancellationToken);
+            await _userSettingsRepository.SaveChangesAsync(cancellationToken);
+            return MapSettings(created);
+        }
+
+        existing.Update(
+            request.Search ?? string.Empty,
+            request.Source ?? string.Empty,
+            minScore,
+            request.VehicleType,
+            normalizedRegion,
+            request.AdvancedFiltersEnabled,
+            now);
+
+        _userSettingsRepository.Update(existing);
+        await _userSettingsRepository.SaveChangesAsync(cancellationToken);
+
+        return MapSettings(existing);
     }
 
     private static OpportunityFeedItemDto MapOpportunity(LotDto lot)
@@ -227,15 +251,39 @@ public sealed class ExperienceService : IExperienceService
         return $"{lot.Make} {lot.Model} {lot.Year} em {lot.Uf}.";
     }
 
-    private static UserSettingsDto DefaultSettings()
+    private async Task<UserSettingsDto> GetOrCreateSettingsAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var existing = await _userSettingsRepository.GetByUserIdAsync(userId, cancellationToken);
+        if (existing is not null)
+        {
+            return MapSettings(existing);
+        }
+
+        var created = new UserSettings(
+            userId,
+            search: string.Empty,
+            source: string.Empty,
+            minScore: 60m,
+            vehicleType: null,
+            region: null,
+            advancedFiltersEnabled: false,
+            updatedAt: DateTime.UtcNow);
+
+        await _userSettingsRepository.AddAsync(created, cancellationToken);
+        await _userSettingsRepository.SaveChangesAsync(cancellationToken);
+
+        return MapSettings(created);
+    }
+
+    private static UserSettingsDto MapSettings(UserSettings settings)
     {
         return new UserSettingsDto(
-            Search: string.Empty,
-            Source: string.Empty,
-            MinScore: 60m,
-            VehicleType: null,
-            Region: null,
-            AdvancedFiltersEnabled: false,
-            UpdatedAtUtc: DateTimeOffset.UtcNow);
+            Search: settings.Search,
+            Source: settings.Source,
+            MinScore: settings.MinScore,
+            VehicleType: settings.VehicleType,
+            Region: settings.Region,
+            AdvancedFiltersEnabled: settings.AdvancedFiltersEnabled,
+            UpdatedAtUtc: new DateTimeOffset(DateTime.SpecifyKind(settings.UpdatedAt, DateTimeKind.Utc)));
     }
 }

@@ -11,7 +11,7 @@ public interface IExperienceService
 
     Task<ScannerRunResponseDto> RunScannerAsync(Guid userId, CancellationToken cancellationToken);
 
-    Task<IReadOnlyList<HistoryItemDto>> GetHistoryAsync(int take, CancellationToken cancellationToken);
+    Task<IReadOnlyList<HistoryItemDto>> GetHistoryAsync(Guid userId, int take, CancellationToken cancellationToken);
 
     Task<UserSettingsDto> GetSettingsAsync(Guid userId, CancellationToken cancellationToken);
 

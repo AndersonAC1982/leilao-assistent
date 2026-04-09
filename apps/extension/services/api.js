@@ -27,7 +27,10 @@ export async function request(path, options = {}) {
 
   if (!response.ok) {
     const message = payload?.detail || payload?.title || 'Falha na comunicacao com API.';
-    throw new Error(message);
+    const error = new Error(message);
+    error.status = response.status;
+    error.payload = payload;
+    throw error;
   }
 
   return payload;

@@ -1,4 +1,5 @@
-﻿using LeilaoAuto.Application.Abstractions.Services;
+using LeilaoAuto.Api.Extensions;
+using LeilaoAuto.Application.Abstractions.Services;
 using LeilaoAuto.Application.Contracts.Experience;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -21,7 +22,8 @@ public class HistoryController : ControllerBase
     [ProducesResponseType(typeof(IReadOnlyList<HistoryItemDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Get([FromQuery] int take = 8, CancellationToken cancellationToken = default)
     {
-        var response = await _experienceService.GetHistoryAsync(take, cancellationToken);
+        var userId = User.GetUserIdOrThrow();
+        var response = await _experienceService.GetHistoryAsync(userId, take, cancellationToken);
         return Ok(response);
     }
 }

@@ -19,4 +19,15 @@ public class ConnectorExecutionLogRepository : BaseRepository<ConnectorExecution
             .Take(safeTake)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<IReadOnlyList<ConnectorExecutionLog>> GetRecentByUserIdAsync(Guid userId, int take, CancellationToken cancellationToken)
+    {
+        var safeTake = take <= 0 ? 20 : take;
+        return await DbContext.ConnectorExecutionLogs
+            .AsNoTracking()
+            .Where(log => log.UserId == null || log.UserId == userId)
+            .OrderByDescending(log => log.ExecutedAt)
+            .Take(safeTake)
+            .ToListAsync(cancellationToken);
+    }
 }

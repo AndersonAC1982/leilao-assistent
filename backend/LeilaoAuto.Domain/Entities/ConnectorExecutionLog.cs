@@ -13,7 +13,8 @@ public class ConnectorExecutionLog
         int recordsRead,
         int recordsSaved,
         string? message,
-        string? payloadJson)
+        string? payloadJson,
+        Guid? userId = null)
     {
         Id = Guid.NewGuid();
         ConnectorName = connectorName.Trim();
@@ -23,9 +24,11 @@ public class ConnectorExecutionLog
         RecordsSaved = recordsSaved;
         Message = message;
         PayloadJson = payloadJson;
+        UserId = userId;
     }
 
     public Guid Id { get; private set; }
+    public Guid? UserId { get; private set; }
     public string ConnectorName { get; private set; } = string.Empty;
     public DateTime ExecutedAt { get; private set; }
     public bool Success { get; private set; }

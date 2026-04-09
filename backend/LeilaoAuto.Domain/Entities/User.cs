@@ -28,6 +28,7 @@ public class User
 
     public ICollection<MonitoredVehicle> MonitoredVehicles { get; private set; } = new List<MonitoredVehicle>();
     public ICollection<Subscription> Subscriptions { get; private set; } = new List<Subscription>();
+    public UserSettings? Settings { get; private set; }
 
     public void AddMonitoredVehicle(MonitoredVehicle vehicle)
     {

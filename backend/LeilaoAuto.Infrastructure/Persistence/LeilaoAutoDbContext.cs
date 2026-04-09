@@ -16,6 +16,7 @@ public class LeilaoAutoDbContext : DbContext
     public DbSet<Lot> Lots => Set<Lot>();
     public DbSet<LotAnalytics> LotAnalytics => Set<LotAnalytics>();
     public DbSet<ConnectorExecutionLog> ConnectorExecutionLogs => Set<ConnectorExecutionLog>();
+    public DbSet<UserSettings> UserSettings => Set<UserSettings>();
 
     // Backward-compatibility with phase-1 modules.
     public DbSet<AuctionLot> AuctionLots => Set<AuctionLot>();

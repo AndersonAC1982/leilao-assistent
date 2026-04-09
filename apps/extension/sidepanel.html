@@ -19,8 +19,8 @@
       <section class="block auth-block" id="auth-block">
         <h2>Acesso</h2>
         <form id="login-form" class="auth-form">
-          <input id="email-input" type="email" placeholder="E-mail" required />
-          <input id="password-input" type="password" placeholder="Senha" required />
+          <input id="email-input" type="email" placeholder="E-mail" autocomplete="username" required />
+          <input id="password-input" type="password" placeholder="Senha" autocomplete="current-password" required />
           <button type="submit" class="primary">Entrar</button>
         </form>
         <div id="session-view" class="hidden">
@@ -39,13 +39,20 @@
         <div class="filters-grid">
           <input id="search-input" type="text" placeholder="Busca geral" />
           <input id="source-input" type="text" placeholder="Fonte" />
-          <input id="score-input" type="number" min="0" max="100" placeholder="Score min" />
-          <input id="type-input" type="number" min="1" placeholder="Tipo" />
+          <input id="score-input" type="number" min="0" max="100" value="60" placeholder="Score min" />
+          <select id="type-input">
+            <option value="">Tipo (todos)</option>
+            <option value="1">Carro</option>
+            <option value="2">Moto</option>
+            <option value="3">Caminhao</option>
+            <option value="4">Utilitario</option>
+            <option value="5">Outro</option>
+          </select>
           <input id="region-input" type="text" maxlength="2" placeholder="UF" />
         </div>
         <div class="row-actions">
           <button id="apply-filters-button" class="primary">Aplicar</button>
-          <button id="save-settings-button" class="ghost">Configurar</button>
+          <button id="save-settings-button" class="ghost">Salvar filtros</button>
         </div>
       </section>
 

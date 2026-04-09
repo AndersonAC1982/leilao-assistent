@@ -13,6 +13,9 @@ public class ConnectorExecutionLogConfiguration : IEntityTypeConfiguration<Conne
         builder.HasKey(log => log.Id);
         builder.Property(log => log.Id).HasColumnName("id");
 
+        builder.Property(log => log.UserId)
+            .HasColumnName("user_id");
+
         builder.Property(log => log.ConnectorName)
             .HasColumnName("connector_name")
             .HasMaxLength(80)
@@ -44,5 +47,6 @@ public class ConnectorExecutionLogConfiguration : IEntityTypeConfiguration<Conne
         builder.HasIndex(log => log.ConnectorName);
         builder.HasIndex(log => log.ExecutedAt);
         builder.HasIndex(log => new { log.ConnectorName, log.ExecutedAt });
+        builder.HasIndex(log => new { log.UserId, log.ExecutedAt });
     }
 }

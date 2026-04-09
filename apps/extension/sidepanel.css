@@ -58,7 +58,8 @@ p {
   gap: 0.4rem;
 }
 
-input {
+input,
+select {
   width: 100%;
   border-radius: 10px;
   border: 1px solid #2f445d;

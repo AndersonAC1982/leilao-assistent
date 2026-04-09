@@ -3,6 +3,7 @@ using System;
 using LeilaoAuto.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace LeilaoAuto.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(LeilaoAutoDbContext))]
-    partial class LeilaoAutoDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260409140808_Phase11ExtensionMvpStabilization")]
+    partial class Phase11ExtensionMvpStabilization
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

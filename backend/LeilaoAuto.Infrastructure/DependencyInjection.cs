@@ -44,6 +44,7 @@ public static class DependencyInjection
         services.AddScoped<ILotRepository, LotRepository>();
         services.AddScoped<ILotAnalyticsRepository, LotAnalyticsRepository>();
         services.AddScoped<IConnectorExecutionLogRepository, ConnectorExecutionLogRepository>();
+        services.AddScoped<IUserSettingsRepository, UserSettingsRepository>();
 
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();

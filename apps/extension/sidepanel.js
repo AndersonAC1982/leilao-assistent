@@ -1,4 +1,4 @@
-﻿import { getToken, login, logout, me } from './services/auth.js';
+import { getToken, login, logout, me } from './services/auth.js';
 import { loadHistory } from './services/history.js';
 import { loadOpportunities } from './services/opportunities.js';
 import { runScanner } from './services/scanner.js';
@@ -10,6 +10,7 @@ const state = {
   me: null,
   opportunities: [],
   history: [],
+  scanStatus: 'Sem login',
   filters: {
     search: '',
     source: '',
@@ -26,7 +27,6 @@ const refs = {
   sessionView: document.getElementById('session-view'),
   sessionEmail: document.getElementById('session-email'),
   logoutButton: document.getElementById('logout-button'),
-  authBlock: document.getElementById('auth-block'),
   runNowButton: document.getElementById('run-now-button'),
   statusGrid: document.getElementById('status-grid'),
   searchInput: document.getElementById('search-input'),
@@ -53,10 +53,65 @@ function isValidLotUrl(url) {
 
   try {
     const parsed = new URL(trimmed);
-    return parsed.hostname.includes('.') && parsed.pathname.length > 1;
+    const hasSpecificPath = parsed.pathname.length > 1;
+    const hasQuery = parsed.search.length > 1;
+    return parsed.hostname.includes('.') && (hasSpecificPath || hasQuery);
   } catch {
     return false;
   }
+}
+
+function toPlanLabel(plan) {
+  switch (Number(plan)) {
+    case 1:
+      return 'Free';
+    case 2:
+      return 'Pro';
+    case 3:
+      return 'Premium';
+    case 4:
+      return 'Elite';
+    default:
+      return String(plan ?? 'N/A');
+  }
+}
+
+function toScoreLabel(label, score) {
+  const normalized = (label || '').trim().toUpperCase();
+  if (normalized) {
+    return normalized.replaceAll('_', ' ');
+  }
+
+  if (score >= 85) {
+    return 'OPORTUNIDADE';
+  }
+
+  if (score >= 65) {
+    return 'BOM PRECO';
+  }
+
+  return 'ACIMA DA MEDIA';
+}
+
+function toRiskLabel(riskDecision) {
+  const normalized = (riskDecision || '').trim().toUpperCase();
+  if (!normalized) {
+    return 'COMPRA SEGURA';
+  }
+
+  if (normalized.includes('ALTO')) {
+    return 'ALTO RISCO';
+  }
+
+  if (normalized.includes('RISCO')) {
+    return 'OPORTUNIDADE COM RISCO';
+  }
+
+  if (normalized.includes('SEGURA')) {
+    return 'COMPRA SEGURA';
+  }
+
+  return normalized.replaceAll('_', ' ');
 }
 
 function setFeedback(message, type = 'ok') {
@@ -67,25 +122,19 @@ function setFeedback(message, type = 'ok') {
   }
 }
 
-function scoreLabel(score) {
-  if (score >= 85) {
-    return 'OPORTUNIDADE';
-  }
-  if (score >= 65) {
-    return 'BOM_PRECO';
-  }
-  return 'ACIMA_DA_MEDIA';
-}
+async function handleSessionExpired(message = 'Sessao expirada. Faca login novamente.') {
+  await logout();
+  state.token = null;
+  state.me = null;
+  state.opportunities = [];
+  state.history = await getItem(STORAGE_KEYS.history, []);
+  state.scanStatus = 'Sem login';
 
-function riskTone(riskDecision) {
-  const normalized = (riskDecision || '').toUpperCase();
-  if (normalized.includes('ALTO')) {
-    return 'ALTO_RISCO';
-  }
-  if (normalized.includes('RISCO')) {
-    return 'OPORTUNIDADE_COM_RISCO';
-  }
-  return 'COMPRA_SEGURA';
+  renderAuth();
+  renderStatus();
+  renderOpportunities();
+  renderHistory();
+  setFeedback(message, 'error');
 }
 
 function renderAuth() {
@@ -93,12 +142,15 @@ function renderAuth() {
   refs.loginForm.classList.toggle('hidden', authenticated);
   refs.sessionView.classList.toggle('hidden', !authenticated);
   refs.runNowButton.disabled = !authenticated;
+  refs.applyFiltersButton.disabled = !authenticated;
+  refs.saveSettingsButton.disabled = !authenticated;
 
   if (authenticated && state.me) {
-    refs.sessionEmail.textContent = `${state.me.email} | Plano ${state.me.plan}`;
-  } else {
-    refs.sessionEmail.textContent = '';
+    refs.sessionEmail.textContent = `${state.me.email} | Plano ${toPlanLabel(state.me.plan)}`;
+    return;
   }
+
+  refs.sessionEmail.textContent = '';
 }
 
 function renderStatus() {
@@ -113,7 +165,7 @@ function renderStatus() {
     { label: 'Lotes encontrados', value: String(state.opportunities.length) },
     { label: 'Maior score', value: maxScore.toFixed(1) },
     { label: 'Fortes', value: String(strong) },
-    { label: 'Varredura', value: state.token ? 'Pronta' : 'Sem login' }
+    { label: 'Varredura', value: state.scanStatus }
   ];
 
   refs.statusGrid.innerHTML = '';
@@ -138,17 +190,16 @@ function renderOpportunities() {
       return;
     }
 
+    const scoreValue = Number(item.score || 0);
+    const score = toScoreLabel(item.scoreLabel, scoreValue);
+    const risk = toRiskLabel(item.riskDecision);
+
     const card = document.createElement('article');
     card.className = 'item-card';
-
-    const scoreValue = Number(item.score || 0);
-    const label = item.scoreLabel || scoreLabel(scoreValue);
-    const risk = item.riskDecision || riskTone(item.riskDecision);
-
     card.innerHTML = `
       <h3>${item.title}</h3>
       <p><strong>Fonte:</strong> ${item.source}</p>
-      <p><strong>Score:</strong> ${label} (${scoreValue.toFixed(1)})</p>
+      <p><strong>Score:</strong> ${score} (${scoreValue.toFixed(1)})</p>
       <p><strong>Local:</strong> ${item.location || '-'}</p>
       <p><strong>Valor:</strong> R$ ${(item.value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
       <p><strong>Risco:</strong> ${risk} (${Number(item.riskScore || 0).toFixed(1)})</p>
@@ -188,6 +239,7 @@ function renderHistory() {
       <p><strong>Data:</strong> ${date}</p>
       <p><strong>Status:</strong> ${entry.status}</p>
       <p><strong>Novos lotes:</strong> ${entry.newLots}</p>
+      <p>${entry.message || ''}</p>
     `;
 
     refs.historyList.appendChild(card);
@@ -195,12 +247,15 @@ function renderHistory() {
 }
 
 function readFiltersFromInputs() {
+  const parsedScore = Number(refs.scoreInput.value || 60);
+  const minScore = Number.isFinite(parsedScore) ? Math.min(100, Math.max(0, parsedScore)) : 60;
+
   state.filters = {
     search: refs.searchInput.value.trim(),
     source: refs.sourceInput.value.trim(),
-    minScore: Number(refs.scoreInput.value || 60),
+    minScore,
     vehicleType: refs.typeInput.value ? Number(refs.typeInput.value) : null,
-    region: refs.regionInput.value.trim().toUpperCase()
+    region: refs.regionInput.value.trim().toUpperCase().slice(0, 2)
   };
 }
 
@@ -212,23 +267,68 @@ function writeFiltersToInputs() {
   refs.regionInput.value = state.filters.region || '';
 }
 
+function buildFiltersPayload() {
+  return {
+    search: state.filters.search,
+    source: state.filters.source,
+    minScore: Number(state.filters.minScore || 0),
+    vehicleType: state.filters.vehicleType,
+    region: state.filters.region || null,
+    advancedFiltersEnabled: true
+  };
+}
+
+function applyBackendSettingsToState(settings) {
+  state.filters = {
+    search: settings.search || '',
+    source: settings.source || '',
+    minScore: settings.minScore ?? 60,
+    vehicleType: settings.vehicleType ?? null,
+    region: settings.region || ''
+  };
+}
+
 async function loadPanelData() {
   if (!state.token) {
     state.opportunities = [];
-    state.history = [];
+    state.history = await getItem(STORAGE_KEYS.history, []);
     renderStatus();
     renderOpportunities();
     renderHistory();
     return;
   }
 
-  const [opportunities, history] = await Promise.all([
+  const [opportunitiesResult, historyResult] = await Promise.allSettled([
     loadOpportunities(state.token, state.filters),
     loadHistory(state.token, 8)
   ]);
 
-  state.opportunities = opportunities.filter((item) => isValidLotUrl(item.lotUrl));
-  state.history = history;
+  if (opportunitiesResult.status === 'fulfilled') {
+    state.opportunities = opportunitiesResult.value.filter((item) => isValidLotUrl(item.lotUrl));
+  } else {
+    if (opportunitiesResult.reason?.status === 401) {
+      await handleSessionExpired();
+      return;
+    }
+
+    state.opportunities = [];
+    setFeedback(opportunitiesResult.reason?.message || 'Falha ao carregar oportunidades.', 'error');
+  }
+
+  if (historyResult.status === 'fulfilled') {
+    state.history = historyResult.value;
+    await setItem(STORAGE_KEYS.history, historyResult.value);
+  } else {
+    if (historyResult.reason?.status === 401) {
+      await handleSessionExpired();
+      return;
+    }
+
+    state.history = await getItem(STORAGE_KEYS.history, []);
+    if (state.history.length > 0) {
+      setFeedback('Historico offline carregado do armazenamento local.', 'ok');
+    }
+  }
 
   renderStatus();
   renderOpportunities();
@@ -242,32 +342,33 @@ async function bootstrap() {
 
   state.token = await getToken();
   state.filters = await getItem(STORAGE_KEYS.filters, state.filters);
+  state.history = await getItem(STORAGE_KEYS.history, []);
   writeFiltersToInputs();
 
   if (state.token) {
     try {
       state.me = await me(state.token);
-      const backendSettings = await loadSettings(state.token);
-      state.filters = {
-        search: backendSettings.search || state.filters.search,
-        source: backendSettings.source || state.filters.source,
-        minScore: backendSettings.minScore ?? state.filters.minScore,
-        vehicleType: backendSettings.vehicleType ?? state.filters.vehicleType,
-        region: backendSettings.region || state.filters.region
-      };
-      writeFiltersToInputs();
+      state.scanStatus = 'Pronta';
     } catch {
-      state.token = null;
-      state.me = null;
-      await logout();
-      setFeedback('Sessao expirada. Faça login novamente.', 'error');
+      await handleSessionExpired();
+      return;
+    }
+
+    try {
+      const backendSettings = await loadSettings(state.token);
+      applyBackendSettingsToState(backendSettings);
+      writeFiltersToInputs();
+    } catch (error) {
+      if (error?.status === 401) {
+        await handleSessionExpired();
+        return;
+      }
+
+      setFeedback('Nao foi possivel carregar configuracoes do servidor. Usando filtros locais.', 'error');
     }
   }
 
   renderAuth();
-  refs.runNowButton.disabled = !state.token;
-  refs.applyFiltersButton.disabled = !state.token;
-  refs.saveSettingsButton.disabled = !state.token;
 
   try {
     await loadPanelData();
@@ -287,16 +388,27 @@ refs.loginForm.addEventListener('submit', async (event) => {
     await login(email, password);
     state.token = await getToken();
     state.me = await me(state.token);
+    state.scanStatus = 'Pronta';
+
+    try {
+      const backendSettings = await loadSettings(state.token);
+      applyBackendSettingsToState(backendSettings);
+      writeFiltersToInputs();
+    } catch {
+      // Keep local filters when backend settings are unavailable.
+    }
 
     renderAuth();
-    refs.applyFiltersButton.disabled = false;
-    refs.saveSettingsButton.disabled = false;
-    refs.runNowButton.disabled = false;
 
     await loadPanelData();
     setFeedback('Login realizado com sucesso.', 'ok');
     refs.passwordInput.value = '';
   } catch (error) {
+    if (error?.status === 401) {
+      setFeedback('Credenciais invalidas.', 'error');
+      return;
+    }
+
     setFeedback(error.message || 'Falha no login.', 'error');
   }
 });
@@ -306,7 +418,8 @@ refs.logoutButton.addEventListener('click', async () => {
   state.token = null;
   state.me = null;
   state.opportunities = [];
-  state.history = [];
+  state.history = await getItem(STORAGE_KEYS.history, []);
+  state.scanStatus = 'Sem login';
 
   renderAuth();
   renderStatus();
@@ -322,6 +435,7 @@ refs.applyFiltersButton.addEventListener('click', async () => {
   }
 
   readFiltersFromInputs();
+  writeFiltersToInputs();
   await setItem(STORAGE_KEYS.filters, state.filters);
 
   try {
@@ -339,20 +453,20 @@ refs.saveSettingsButton.addEventListener('click', async () => {
   }
 
   readFiltersFromInputs();
+  writeFiltersToInputs();
   await setItem(STORAGE_KEYS.filters, state.filters);
 
   try {
-    await saveSettings(state.token, {
-      search: state.filters.search,
-      source: state.filters.source,
-      minScore: Number(state.filters.minScore || 0),
-      vehicleType: state.filters.vehicleType,
-      region: state.filters.region || null,
-      advancedFiltersEnabled: true
-    });
-
-    setFeedback('Configuracoes salvas.', 'ok');
+    const saved = await saveSettings(state.token, buildFiltersPayload());
+    applyBackendSettingsToState(saved);
+    writeFiltersToInputs();
+    setFeedback('Configuracoes salvas no servidor.', 'ok');
   } catch (error) {
+    if (error?.status === 401) {
+      await handleSessionExpired();
+      return;
+    }
+
     setFeedback(error.message || 'Falha ao salvar configuracoes.', 'error');
   }
 });
@@ -364,18 +478,30 @@ refs.runNowButton.addEventListener('click', async () => {
   }
 
   refs.runNowButton.disabled = true;
+  state.scanStatus = 'Executando';
+  renderStatus();
   setFeedback('Rodando varredura...', 'ok');
 
   try {
     const result = await runScanner(state.token);
+    state.scanStatus = result.success
+      ? `Concluida ${new Date(result.completedAtUtc).toLocaleTimeString('pt-BR')}`
+      : 'Falhou';
+
     await loadPanelData();
     setFeedback(result.message || `Varredura concluida: ${result.refreshedLots} lotes.`, 'ok');
   } catch (error) {
+    if (error?.status === 401) {
+      await handleSessionExpired();
+      return;
+    }
+
+    state.scanStatus = 'Falhou';
+    renderStatus();
     setFeedback(error.message || 'Falha na varredura.', 'error');
   } finally {
-    refs.runNowButton.disabled = false;
+    refs.runNowButton.disabled = !state.token;
   }
 });
 
 bootstrap();
-

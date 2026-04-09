@@ -120,6 +120,46 @@ public static class DatabaseSeeder
                 endsAt: now.AddMonths(-1))
         };
 
+        var userSettings = new[]
+        {
+            new UserSettings(
+                admin.Id,
+                search: string.Empty,
+                source: string.Empty,
+                minScore: 70m,
+                vehicleType: null,
+                region: "SP",
+                advancedFiltersEnabled: true,
+                updatedAt: now),
+            new UserSettings(
+                proUser.Id,
+                search: "gol",
+                source: "Superbid",
+                minScore: 65m,
+                vehicleType: (int)VehicleType.Car,
+                region: "MG",
+                advancedFiltersEnabled: true,
+                updatedAt: now),
+            new UserSettings(
+                premiumUser.Id,
+                search: "renegade",
+                source: string.Empty,
+                minScore: 60m,
+                vehicleType: (int)VehicleType.Utility,
+                region: "SP",
+                advancedFiltersEnabled: true,
+                updatedAt: now),
+            new UserSettings(
+                freeUser.Id,
+                search: string.Empty,
+                source: string.Empty,
+                minScore: 60m,
+                vehicleType: null,
+                region: null,
+                advancedFiltersEnabled: false,
+                updatedAt: now)
+        };
+
         var lots = new[]
         {
             new Lot(
@@ -344,6 +384,7 @@ public static class DatabaseSeeder
 
         await dbContext.Users.AddRangeAsync([admin, proUser, premiumUser, freeUser], cancellationToken);
         await dbContext.Subscriptions.AddRangeAsync(subscriptions, cancellationToken);
+        await dbContext.UserSettings.AddRangeAsync(userSettings, cancellationToken);
         await dbContext.Lots.AddRangeAsync(lots, cancellationToken);
         await dbContext.LotAnalytics.AddRangeAsync(analytics, cancellationToken);
         await dbContext.ConnectorExecutionLogs.AddRangeAsync(connectorLogs, cancellationToken);
