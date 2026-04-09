@@ -130,7 +130,10 @@ public static class DatabaseSeeder
                 vehicleType: null,
                 region: "SP",
                 advancedFiltersEnabled: true,
-                updatedAt: now),
+                updatedAt: now,
+                category: "Todas",
+                activeSources: "Superbid|Sodre Santoro|VIP Leiloes|Freitas|Zukerman|Mega Leiloes|Pacto Leiloes|Milan Leiloes",
+                maxPrice: null),
             new UserSettings(
                 proUser.Id,
                 search: "gol",
@@ -139,7 +142,10 @@ public static class DatabaseSeeder
                 vehicleType: (int)VehicleType.Car,
                 region: "MG",
                 advancedFiltersEnabled: true,
-                updatedAt: now),
+                updatedAt: now,
+                category: "Veiculos",
+                activeSources: "Superbid|Freitas",
+                maxPrice: 85000m),
             new UserSettings(
                 premiumUser.Id,
                 search: "renegade",
@@ -148,7 +154,10 @@ public static class DatabaseSeeder
                 vehicleType: (int)VehicleType.Utility,
                 region: "SP",
                 advancedFiltersEnabled: true,
-                updatedAt: now),
+                updatedAt: now,
+                category: "Veiculos",
+                activeSources: "Sodre Santoro|VIP Leiloes|Milan Leiloes",
+                maxPrice: 150000m),
             new UserSettings(
                 freeUser.Id,
                 search: string.Empty,
@@ -157,7 +166,10 @@ public static class DatabaseSeeder
                 vehicleType: null,
                 region: null,
                 advancedFiltersEnabled: false,
-                updatedAt: now)
+                updatedAt: now,
+                category: "Todas",
+                activeSources: "Superbid|Pacto Leiloes",
+                maxPrice: null)
         };
 
         var lots = new[]

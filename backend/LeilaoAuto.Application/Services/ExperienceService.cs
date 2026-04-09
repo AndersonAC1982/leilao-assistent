@@ -307,6 +307,11 @@ public sealed class ExperienceService : IExperienceService
         var minScore = Math.Clamp(request.MinScore, 0, 100);
         var normalizedRegion = string.IsNullOrWhiteSpace(request.Region) ? null : request.Region.Trim().ToUpperInvariant();
         var advancedFiltersEnabled = quota.AllowsAdvancedFilters && request.AdvancedFiltersEnabled;
+        var normalizedCategory = string.IsNullOrWhiteSpace(request.Category) ? "Todas" : request.Category.Trim();
+        var normalizedSources = SerializeSources(request.ActiveSources);
+        var normalizedMaxPrice = request.MaxPrice.HasValue && request.MaxPrice.Value > 0
+            ? (decimal?)request.MaxPrice.Value
+            : null;
 
         if (!quota.AllowsAdvancedFilters && request.AdvancedFiltersEnabled)
         {
@@ -327,7 +332,10 @@ public sealed class ExperienceService : IExperienceService
                 request.VehicleType,
                 normalizedRegion,
                 advancedFiltersEnabled,
-                now);
+                now,
+                normalizedCategory,
+                normalizedSources,
+                normalizedMaxPrice);
 
             await _userSettingsRepository.AddAsync(created, cancellationToken);
             await _userSettingsRepository.SaveChangesAsync(cancellationToken);
@@ -350,7 +358,10 @@ public sealed class ExperienceService : IExperienceService
             request.VehicleType,
             normalizedRegion,
             advancedFiltersEnabled,
-            now);
+            now,
+            normalizedCategory,
+            normalizedSources,
+            normalizedMaxPrice);
 
         _userSettingsRepository.Update(existing);
         await _userSettingsRepository.SaveChangesAsync(cancellationToken);
@@ -492,7 +503,10 @@ public sealed class ExperienceService : IExperienceService
             vehicleType: null,
             region: null,
             advancedFiltersEnabled: false,
-            updatedAt: DateTime.UtcNow);
+            updatedAt: DateTime.UtcNow,
+            category: "Todas",
+            activeSources: string.Empty,
+            maxPrice: null);
 
         await _userSettingsRepository.AddAsync(created, cancellationToken);
         await _userSettingsRepository.SaveChangesAsync(cancellationToken);
@@ -509,7 +523,38 @@ public sealed class ExperienceService : IExperienceService
             VehicleType: settings.VehicleType,
             Region: settings.Region,
             AdvancedFiltersEnabled: settings.AdvancedFiltersEnabled,
+            Category: settings.Category,
+            ActiveSources: ParseSources(settings.ActiveSources),
+            MaxPrice: settings.MaxPrice,
             UpdatedAtUtc: new DateTimeOffset(DateTime.SpecifyKind(settings.UpdatedAt, DateTimeKind.Utc)));
+    }
+
+    private static IReadOnlyList<string> ParseSources(string? activeSources)
+    {
+        if (string.IsNullOrWhiteSpace(activeSources))
+        {
+            return [];
+        }
+
+        return activeSources
+            .Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
+    private static string SerializeSources(IReadOnlyList<string>? activeSources)
+    {
+        if (activeSources is null || activeSources.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        return string.Join(
+            '|',
+            activeSources
+                .Select(source => source.Trim())
+                .Where(source => source.Length > 0)
+                .Distinct(StringComparer.OrdinalIgnoreCase));
     }
 
     private sealed record ExtensionPlanQuota(

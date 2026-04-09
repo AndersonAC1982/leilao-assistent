@@ -43,6 +43,22 @@ public class UserSettingsConfiguration : IEntityTypeConfiguration<UserSettings>
             .HasColumnName("advanced_filters_enabled")
             .IsRequired();
 
+        builder.Property(settings => settings.Category)
+            .HasColumnName("category")
+            .HasMaxLength(60)
+            .HasDefaultValue("Todas")
+            .IsRequired();
+
+        builder.Property(settings => settings.ActiveSources)
+            .HasColumnName("active_sources")
+            .HasMaxLength(400)
+            .HasDefaultValue(string.Empty)
+            .IsRequired();
+
+        builder.Property(settings => settings.MaxPrice)
+            .HasColumnName("max_price")
+            .HasPrecision(14, 2);
+
         builder.Property(settings => settings.UpdatedAt)
             .HasColumnName("updated_at")
             .IsRequired();

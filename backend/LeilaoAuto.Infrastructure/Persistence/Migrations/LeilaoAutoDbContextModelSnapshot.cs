@@ -527,10 +527,31 @@ namespace LeilaoAuto.Infrastructure.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("advanced_filters_enabled");
 
+                    b.Property<string>("ActiveSources")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(400)
+                        .HasColumnType("character varying(400)")
+                        .HasColumnName("active_sources")
+                        .HasDefaultValue("");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("category")
+                        .HasDefaultValue("Todas");
+
                     b.Property<decimal>("MinScore")
                         .HasPrecision(5, 2)
                         .HasColumnType("numeric(5,2)")
                         .HasColumnName("min_score");
+
+                    b.Property<decimal?>("MaxPrice")
+                        .HasPrecision(14, 2)
+                        .HasColumnType("numeric(14,2)")
+                        .HasColumnName("max_price");
 
                     b.Property<string>("Region")
                         .HasMaxLength(10)

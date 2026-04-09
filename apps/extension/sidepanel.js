@@ -1,4 +1,4 @@
-import { getToken, login, logout, me } from "./services/auth.js";
+﻿import { getToken, login, logout, me } from "./services/auth.js";
 import { loadHistory } from "./services/history.js";
 import { loadOpportunities } from "./services/opportunities.js";
 import { runScanner } from "./services/scanner.js";
@@ -7,6 +7,49 @@ import { getItem, setItem, STORAGE_KEYS } from "./services/storage.js";
 
 const API_HINT = "API indisponível. Confirme se a API está em http://localhost:8080.";
 
+const SOURCE_OPTIONS = [
+  "Superbid",
+  "Sodré Santoro",
+  "VIP Leilões",
+  "Freitas",
+  "Zukerman",
+  "Mega",
+  "Pacto",
+  "Milan"
+];
+
+const SOURCE_API_NAMES = {
+  superbid: "Superbid",
+  sodresantoro: "Sodre Santoro",
+  vipleiloes: "VIP Leiloes",
+  freitas: "Freitas",
+  zukerman: "Zukerman",
+  mega: "Mega Leiloes",
+  pacto: "Pacto Leiloes",
+  milan: "Milan Leiloes"
+};
+
+const CATEGORIES = [
+  { key: "all", label: "Todas", searchHint: "", vehicleType: null },
+  { key: "vehicles", label: "Veículos", searchHint: "", vehicleType: null },
+  { key: "real_estate", label: "Imóveis", searchHint: "imovel", vehicleType: null },
+  { key: "machines", label: "Máquinas e Equipamentos", searchHint: "maquina equipamento", vehicleType: null },
+  { key: "materials", label: "Materiais / Estoque", searchHint: "material estoque", vehicleType: null },
+  { key: "scrap", label: "Sucatas", searchHint: "sucata recuperavel", vehicleType: null },
+  { key: "judicial", label: "Judicial", searchHint: "judicial", vehicleType: null },
+  { key: "extrajudicial", label: "Extrajudicial", searchHint: "extrajudicial", vehicleType: null },
+  { key: "misc", label: "Diversos", searchHint: "", vehicleType: null }
+];
+
+const DEFAULT_FILTERS = {
+  categoryKey: "all",
+  activeSources: [...SOURCE_OPTIONS],
+  search: "",
+  minScore: 60,
+  region: "",
+  maxPrice: null
+};
+
 const state = {
   token: null,
   me: null,
@@ -14,13 +57,7 @@ const state = {
   opportunities: [],
   history: [],
   scanStatus: "Aguardando login",
-  filters: {
-    search: "",
-    source: "",
-    minScore: 60,
-    vehicleType: null,
-    region: ""
-  }
+  filters: { ...DEFAULT_FILTERS }
 };
 
 const refs = {
@@ -30,19 +67,26 @@ const refs = {
   sessionView: document.getElementById("session-view"),
   sessionEmail: document.getElementById("session-email"),
   logoutButton: document.getElementById("logout-button"),
+
   runNowButton: document.getElementById("run-now-button"),
-  tabContext: document.getElementById("tab-context"),
-  useDomainButton: document.getElementById("use-domain-button"),
-  statusGrid: document.getElementById("status-grid"),
+
+  categoryInput: document.getElementById("category-input"),
+  sourcesList: document.getElementById("sources-list"),
   searchInput: document.getElementById("search-input"),
-  sourceInput: document.getElementById("source-input"),
   scoreInput: document.getElementById("score-input"),
-  typeInput: document.getElementById("type-input"),
   regionInput: document.getElementById("region-input"),
+  maxPriceInput: document.getElementById("max-price-input"),
   applyFiltersButton: document.getElementById("apply-filters-button"),
   saveSettingsButton: document.getElementById("save-settings-button"),
+
+  tabContext: document.getElementById("tab-context"),
+  useDomainButton: document.getElementById("use-domain-button"),
+
   opportunitiesCount: document.getElementById("opportunities-count"),
+  scanStatusText: document.getElementById("scan-status-text"),
+  statusGrid: document.getElementById("status-grid"),
   opportunitiesList: document.getElementById("opportunities-list"),
+
   historyList: document.getElementById("history-list"),
   feedback: document.getElementById("feedback")
 };
@@ -52,12 +96,131 @@ function escapeHtml(value) {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
+    .replace(/\"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
 
+function normalizeText(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function normalizeKey(value) {
+  return normalizeText(value).replace(/[^a-z0-9]/g, "");
+}
+
 function normalizeDomain(domain) {
-  return String(domain || "").replace(/^www\./i, "").trim();
+  return String(domain || "").replace(/^www\./i, "").trim().toLowerCase();
+}
+
+function clampScore(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return 60;
+  }
+
+  return Math.max(0, Math.min(100, parsed));
+}
+
+function normalizeMaxPrice(value) {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return null;
+  }
+
+  return parsed;
+}
+
+function mapSourceLabel(rawSource) {
+  const rawKey = normalizeKey(rawSource);
+  if (!rawKey) {
+    return null;
+  }
+
+  return SOURCE_OPTIONS.find((source) => {
+    const sourceKey = normalizeKey(source);
+    return sourceKey === rawKey || sourceKey.includes(rawKey) || rawKey.includes(sourceKey);
+  }) ?? null;
+}
+
+function normalizeSources(sourceList) {
+  const sources = Array.isArray(sourceList) ? sourceList : [];
+  const normalized = [];
+
+  for (const source of sources) {
+    const mapped = mapSourceLabel(source);
+    if (!mapped || normalized.includes(mapped)) {
+      continue;
+    }
+
+    normalized.push(mapped);
+  }
+
+  return normalized;
+}
+
+function toApiSourceName(sourceLabel) {
+  const key = normalizeKey(sourceLabel);
+  if (!key) {
+    return "";
+  }
+
+  const mappedKey = Object.keys(SOURCE_API_NAMES).find((candidate) =>
+    key.includes(candidate) || candidate.includes(key)
+  );
+
+  return mappedKey ? SOURCE_API_NAMES[mappedKey] : sourceLabel;
+}
+
+function getCategoryByKey(categoryKey) {
+  return CATEGORIES.find((category) => category.key === categoryKey) ?? CATEGORIES[0];
+}
+
+function resolveCategoryKey(categoryValue, vehicleType) {
+  if (typeof categoryValue === "string" && categoryValue.trim()) {
+    const trimmed = categoryValue.trim();
+    const direct = CATEGORIES.find((category) => category.key === trimmed);
+    if (direct) {
+      return direct.key;
+    }
+
+    const normalizedCategory = normalizeKey(trimmed);
+    const byLabel = CATEGORIES.find((category) => normalizeKey(category.label) === normalizedCategory);
+    if (byLabel) {
+      return byLabel.key;
+    }
+  }
+
+  if (vehicleType !== null && vehicleType !== undefined) {
+    return "vehicles";
+  }
+
+  return "all";
+}
+
+function mergeSearch(baseSearch, categoryHint) {
+  const parts = [String(baseSearch || "").trim(), String(categoryHint || "").trim()].filter(Boolean);
+  if (parts.length === 0) {
+    return "";
+  }
+
+  return Array.from(new Set(parts)).join(" ");
+}
+
+function parseBackendDate(value) {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return "-";
+  }
+
+  return parsed.toLocaleString("pt-BR");
 }
 
 function isValidLotUrl(url) {
@@ -75,16 +238,14 @@ function isValidLotUrl(url) {
       return false;
     }
 
-    const path = parsed.pathname.trim();
-    return path.length > 1;
+    return parsed.pathname.trim().length > 1;
   } catch {
     return false;
   }
 }
 
 function lotStatusLabel(status) {
-  const statusNumber = Number(status);
-  switch (statusNumber) {
+  switch (Number(status)) {
     case 1:
       return "ATIVO";
     case 2:
@@ -123,10 +284,79 @@ function scoreLabel(item) {
   }
 
   if (score >= 65) {
-    return `BOM PRECO (${score.toFixed(1)})`;
+    return `BOM PREÇO (${score.toFixed(1)})`;
   }
 
-  return `ACIMA DA MEDIA (${score.toFixed(1)})`;
+  return `ACIMA DA MÉDIA (${score.toFixed(1)})`;
+}
+
+function inferOpportunityCategory(item) {
+  const selectedCategory = getCategoryByKey(state.filters.categoryKey);
+  if (selectedCategory.key !== "all") {
+    return selectedCategory.label;
+  }
+
+  const content = normalizeText(`${item.title || ""} ${item.summary || ""} ${item.source || ""}`);
+
+  if (content.includes("extrajudicial")) {
+    return "Extrajudicial";
+  }
+
+  if (content.includes("judicial")) {
+    return "Judicial";
+  }
+
+  if (content.includes("imovel") || content.includes("apartamento") || content.includes("casa") || content.includes("terreno")) {
+    return "Imóveis";
+  }
+
+  if (content.includes("maquina") || content.includes("equipamento") || content.includes("trator") || content.includes("escavadeira")) {
+    return "Máquinas e Equipamentos";
+  }
+
+  if (content.includes("material") || content.includes("estoque")) {
+    return "Materiais / Estoque";
+  }
+
+  if (content.includes("sucata") || content.includes("recuperavel") || content.includes("recuperável")) {
+    return "Sucatas";
+  }
+
+  if (content.includes("veiculo") || content.includes("veículo") || content.includes("carro") || content.includes("moto") || content.includes("caminhao") || content.includes("caminhão")) {
+    return "Veículos";
+  }
+
+  return "Diversos";
+}
+
+function matchesSelectedSource(opportunitySource) {
+  if (!state.filters.activeSources.length) {
+    return false;
+  }
+
+  const sourceKey = normalizeKey(opportunitySource);
+  if (!sourceKey) {
+    return false;
+  }
+
+  return state.filters.activeSources.some((selectedSource) => {
+    const selectedKey = normalizeKey(selectedSource);
+    return sourceKey.includes(selectedKey) || selectedKey.includes(sourceKey);
+  });
+}
+
+function applyLocalOpportunityFilters(opportunities) {
+  return opportunities
+    .filter((item) => isValidLotUrl(item.lotUrl))
+    .filter((item) => matchesSelectedSource(item.source))
+    .filter((item) => {
+      if (state.filters.maxPrice === null) {
+        return true;
+      }
+
+      const value = Number(item.value || 0);
+      return value > 0 && value <= state.filters.maxPrice;
+    });
 }
 
 function friendlyError(error) {
@@ -150,6 +380,109 @@ function setFeedback(message, type = "ok") {
   }
 }
 
+function renderSources() {
+  const selected = new Set(state.filters.activeSources);
+
+  refs.sourcesList.innerHTML = SOURCE_OPTIONS.map((source, index) => {
+    const id = `source-${index}`;
+    const checked = selected.has(source) ? "checked" : "";
+    return `
+      <div class="source-item">
+        <input id="${escapeHtml(id)}" type="checkbox" data-source="${escapeHtml(source)}" ${checked} />
+        <label for="${escapeHtml(id)}">${escapeHtml(source)}</label>
+      </div>
+    `;
+  }).join("");
+
+  refs.sourcesList.querySelectorAll('input[type="checkbox"][data-source]').forEach((checkbox) => {
+    checkbox.addEventListener("change", async () => {
+      readFiltersFromForm();
+      renderStatus();
+      await setItem(STORAGE_KEYS.filters, state.filters);
+    });
+  });
+}
+
+function renderFilters() {
+  refs.categoryInput.value = state.filters.categoryKey;
+  refs.searchInput.value = state.filters.search;
+  refs.scoreInput.value = String(state.filters.minScore);
+  refs.regionInput.value = state.filters.region;
+  refs.maxPriceInput.value = state.filters.maxPrice === null ? "" : String(state.filters.maxPrice);
+  renderSources();
+}
+
+function readFiltersFromForm() {
+  const selectedSources = Array.from(
+    refs.sourcesList.querySelectorAll('input[type="checkbox"][data-source]:checked')
+  ).map((checkbox) => checkbox.getAttribute("data-source") || "");
+
+  state.filters = {
+    categoryKey: getCategoryByKey(refs.categoryInput.value).key,
+    activeSources: normalizeSources(selectedSources),
+    search: refs.searchInput.value.trim(),
+    minScore: clampScore(refs.scoreInput.value),
+    region: refs.regionInput.value.trim().toUpperCase().slice(0, 10),
+    maxPrice: normalizeMaxPrice(refs.maxPriceInput.value)
+  };
+}
+
+function buildOpportunityQuery() {
+  const category = getCategoryByKey(state.filters.categoryKey);
+  return {
+    search: mergeSearch(state.filters.search, category.searchHint),
+    source: state.filters.activeSources.length === 1 ? toApiSourceName(state.filters.activeSources[0]) : "",
+    minScore: state.filters.minScore,
+    vehicleType: category.vehicleType,
+    region: state.filters.region || ""
+  };
+}
+
+function settingsPayload() {
+  const category = getCategoryByKey(state.filters.categoryKey);
+  const query = buildOpportunityQuery();
+
+  return {
+    search: state.filters.search,
+    source: state.filters.activeSources.length === 1 ? toApiSourceName(state.filters.activeSources[0]) : "",
+    minScore: query.minScore,
+    vehicleType: query.vehicleType,
+    region: state.filters.region || null,
+    advancedFiltersEnabled: false,
+    category: category.label,
+    activeSources: state.filters.activeSources,
+    maxPrice: state.filters.maxPrice
+  };
+}
+
+function mergeSettings(settings, hadStoredSources) {
+  if (!settings || typeof settings !== "object") {
+    return;
+  }
+
+  const categoryKey = resolveCategoryKey(settings.category, settings.vehicleType);
+
+  const activeSourcesFromSettings = normalizeSources(
+    Array.isArray(settings.activeSources)
+      ? settings.activeSources
+      : []
+  );
+
+  const fallbackSingleSource = typeof settings.source === "string" ? normalizeSources([settings.source]) : [];
+  const activeSources = activeSourcesFromSettings.length > 0
+    ? activeSourcesFromSettings
+    : (!hadStoredSources ? fallbackSingleSource : state.filters.activeSources);
+
+  state.filters = {
+    categoryKey,
+    activeSources: activeSources.length > 0 ? activeSources : [...SOURCE_OPTIONS],
+    search: typeof settings.search === "string" ? settings.search.trim() : state.filters.search,
+    minScore: clampScore(settings.minScore ?? state.filters.minScore),
+    region: typeof settings.region === "string" && settings.region.trim() ? settings.region.trim().toUpperCase() : state.filters.region,
+    maxPrice: normalizeMaxPrice(settings.maxPrice)
+  };
+}
+
 function renderAuth() {
   const authenticated = !!state.token;
   refs.loginForm.classList.toggle("hidden", authenticated);
@@ -158,122 +491,101 @@ function renderAuth() {
   refs.runNowButton.disabled = !authenticated;
   refs.applyFiltersButton.disabled = !authenticated;
   refs.saveSettingsButton.disabled = !authenticated;
+  refs.useDomainButton.disabled = !authenticated || !state.tabContext?.domain;
+
+  refs.sourcesList.querySelectorAll('input[type="checkbox"]').forEach((checkbox) => {
+    checkbox.disabled = !authenticated;
+  });
 
   refs.sessionEmail.textContent = authenticated && state.me
     ? `${state.me.email} | Plano ${planLabel(state.me.plan)}`
     : "";
 }
 
+function findSourceByDomain(domain) {
+  const normalized = normalizeDomain(domain);
+  if (!normalized) {
+    return null;
+  }
+
+  const table = [
+    { contains: "superbid", source: "Superbid" },
+    { contains: "sodresantoro", source: "Sodré Santoro" },
+    { contains: "vipleiloes", source: "VIP Leilões" },
+    { contains: "freitas", source: "Freitas" },
+    { contains: "zuk", source: "Zukerman" },
+    { contains: "mega", source: "Mega" },
+    { contains: "pacto", source: "Pacto" },
+    { contains: "milan", source: "Milan" }
+  ];
+
+  const match = table.find((item) => normalized.includes(item.contains));
+  return match ? match.source : null;
+}
+
 function renderTabContext() {
-  if (!state.tabContext) {
+  if (!state.tabContext?.domain) {
     refs.tabContext.textContent = "Sem contexto da aba.";
     refs.useDomainButton.disabled = true;
     return;
   }
 
   const domain = normalizeDomain(state.tabContext.domain);
-  const title = state.tabContext.title ? ` | ${state.tabContext.title}` : "";
-  refs.tabContext.textContent = domain ? `${domain}${title}` : "Sem contexto da aba.";
-  refs.useDomainButton.disabled = !domain;
+  const suggestedSource = findSourceByDomain(domain);
+  refs.tabContext.textContent = suggestedSource
+    ? `Domínio atual: ${domain} | Fonte sugerida: ${suggestedSource}`
+    : `Domínio atual: ${domain} | Sem fonte mapeada`;
+
+  refs.useDomainButton.disabled = !state.token;
 }
 
 function renderStatus() {
   const maxScore = state.opportunities.length
     ? Math.max(...state.opportunities.map((item) => Number(item.score || 0)))
     : 0;
+
   const strongCount = state.opportunities.filter((item) => Number(item.score || 0) >= 75).length;
-  const sourceCount = new Set(
-    state.opportunities
-      .map((item) => String(item.source || "").trim())
-      .filter(Boolean)
-  ).size;
+  const categoryLabel = getCategoryByKey(state.filters.categoryKey).label;
 
-  const chips = [
-    ["Fontes ativas", String(sourceCount)],
-    ["Lotes", String(state.opportunities.length)],
+  refs.scanStatusText.textContent = state.scanStatus;
+  refs.statusGrid.innerHTML = [
+    ["Categoria", categoryLabel],
+    ["Fontes ativas", String(state.filters.activeSources.length)],
+    ["Resultados", String(state.opportunities.length)],
     ["Maior score", maxScore.toFixed(1)],
-    ["Fortes", String(strongCount)],
-    ["Varredura", state.scanStatus]
-  ];
-
-  refs.statusGrid.innerHTML = chips
-    .map(([label, value]) => `<article class="status-chip"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></article>`)
+    ["Oportunidades fortes", String(strongCount)]
+  ]
+    .map(([label, value]) => `<div class="status-chip"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`)
     .join("");
 }
 
-function renderFilters() {
-  refs.searchInput.value = state.filters.search || "";
-  refs.sourceInput.value = state.filters.source || "";
-  refs.scoreInput.value = String(state.filters.minScore ?? 60);
-  refs.typeInput.value = state.filters.vehicleType ? String(state.filters.vehicleType) : "";
-  refs.regionInput.value = state.filters.region || "";
-}
-
-function readFilters() {
-  const parsedScore = Number(refs.scoreInput.value);
-  const minScore = Number.isFinite(parsedScore) ? Math.max(0, Math.min(100, parsedScore)) : 60;
-
-  state.filters = {
-    search: refs.searchInput.value.trim(),
-    source: refs.sourceInput.value.trim(),
-    minScore,
-    vehicleType: refs.typeInput.value ? Number(refs.typeInput.value) : null,
-    region: refs.regionInput.value.trim().toUpperCase().slice(0, 2)
-  };
-}
-
-function mapSettingsToFilters(settings) {
-  state.filters = {
-    search: settings.search || "",
-    source: settings.source || "",
-    minScore: settings.minScore ?? 60,
-    vehicleType: settings.vehicleType ?? null,
-    region: settings.region || ""
-  };
-}
-
-function filtersPayload() {
-  return {
-    search: state.filters.search,
-    source: state.filters.source,
-    minScore: Number(state.filters.minScore || 0),
-    vehicleType: state.filters.vehicleType,
-    region: state.filters.region || null,
-    advancedFiltersEnabled: false
-  };
-}
-
 function renderOpportunities() {
-  const valid = state.opportunities.filter((item) => isValidLotUrl(item.lotUrl));
-  refs.opportunitiesCount.textContent = String(valid.length);
+  refs.opportunitiesCount.textContent = String(state.opportunities.length);
 
-  if (!valid.length) {
-    refs.opportunitiesList.innerHTML = '<p class="muted">Nenhuma oportunidade encontrada.</p>';
+  if (!state.opportunities.length) {
+    refs.opportunitiesList.innerHTML = '<p class="muted">Nenhuma oportunidade encontrada para os filtros atuais.</p>';
     return;
   }
 
-  refs.opportunitiesList.innerHTML = valid
+  refs.opportunitiesList.innerHTML = state.opportunities
     .map((item) => {
       const value = Number(item.value || 0);
-      const location = item.location || "-";
-      const risk = String(item.riskDecision || "SEM_INFO").replaceAll("_", " ");
+      const categoryLabel = inferOpportunityCategory(item);
       return `
-        <article class="item-card">
-          <div class="item-top">
+        <article class="item">
+          <div class="item-head">
             <span class="badge">${escapeHtml(item.source || "Sem fonte")}</span>
-            <span class="badge score">${escapeHtml(scoreLabel(item))}</span>
+            <span class="badge badge-score">${escapeHtml(scoreLabel(item))}</span>
           </div>
           <h3>${escapeHtml(item.title || "Lote sem título")}</h3>
           <div class="item-meta">
-            <span>${escapeHtml(lotStatusLabel(item.status))}</span>
-            <span>${escapeHtml(location)}</span>
-            <span>Risco: ${escapeHtml(risk)}</span>
+            <span>Categoria: ${escapeHtml(categoryLabel)}</span>
+            <span>Status: ${escapeHtml(lotStatusLabel(item.status))}</span>
+            <span>Local: ${escapeHtml(item.location || "-")}</span>
           </div>
           <p class="item-price">R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
           <p class="muted">${escapeHtml(item.summary || "")}</p>
-          <div class="item-actions">
-            <button class="button primary open-lot" type="button" data-url="${escapeHtml(item.lotUrl)}">Abrir lote</button>
-          </div>
+          <button class="btn btn-primary open-lot" type="button" data-url="${escapeHtml(item.lotUrl)}">Abrir lote</button>
         </article>
       `;
     })
@@ -300,19 +612,19 @@ function renderHistory() {
 
   refs.historyList.innerHTML = state.history
     .slice(0, 10)
-    .map((entry) => {
-      const date = new Date(entry.executedAtUtc).toLocaleString("pt-BR");
+    .map((item) => {
+      const status = item.status || (item.success ? "CONCLUÍDO" : "FALHA");
       return `
-        <article class="item-card">
-          <div class="item-top">
-            <span class="badge">${escapeHtml(entry.source || "Execução")}</span>
-            <span class="badge">${escapeHtml(entry.status || (entry.success ? "CONCLUIDO" : "FALHA"))}</span>
+        <article class="item">
+          <div class="item-head">
+            <span class="badge">${escapeHtml(item.source || "Execução")}</span>
+            <span class="badge">${escapeHtml(status)}</span>
           </div>
           <div class="item-meta">
-            <span>${escapeHtml(date)}</span>
-            <span>Novos lotes: ${escapeHtml(String(entry.newLots ?? 0))}</span>
+            <span>${escapeHtml(parseBackendDate(item.executedAtUtc))}</span>
+            <span>Novos lotes: ${escapeHtml(String(item.newLots ?? 0))}</span>
           </div>
-          <p class="muted">${escapeHtml(entry.message || "")}</p>
+          <p class="muted">${escapeHtml(item.message || "")}</p>
         </article>
       `;
     })
@@ -330,7 +642,8 @@ async function fetchTabContext() {
       return {
         href: tab.url || "",
         domain: "",
-        title: tab.title || ""
+        title: tab.title || "",
+        vehicleHint: ""
       };
     }
 
@@ -340,7 +653,7 @@ async function fetchTabContext() {
         return response;
       }
     } catch {
-      // Fallback below when content script cannot run (e.g. chrome://).
+      // Fallback below.
     }
 
     let domain = "";
@@ -353,7 +666,8 @@ async function fetchTabContext() {
     return {
       href: tab.url || "",
       domain,
-      title: tab.title || ""
+      title: tab.title || "",
+      vehicleHint: ""
     };
   } catch {
     return null;
@@ -385,13 +699,15 @@ async function refreshData() {
     return;
   }
 
+  const query = buildOpportunityQuery();
+
   const [opportunitiesResult, historyResult] = await Promise.allSettled([
-    loadOpportunities(state.token, state.filters),
+    loadOpportunities(state.token, query),
     loadHistory(state.token, 10)
   ]);
 
   if (opportunitiesResult.status === "fulfilled") {
-    state.opportunities = opportunitiesResult.value.filter((item) => isValidLotUrl(item.lotUrl));
+    state.opportunities = applyLocalOpportunityFilters(opportunitiesResult.value);
   } else {
     if (opportunitiesResult.reason?.status === 401) {
       await handleSessionExpired();
@@ -421,12 +737,28 @@ async function refreshData() {
 
 async function bootstrap() {
   state.token = await getToken();
-  state.filters = await getItem(STORAGE_KEYS.filters, state.filters);
+
+  const rawStoredFilters = await getItem(STORAGE_KEYS.filters, DEFAULT_FILTERS);
+  const hadStoredSources = Array.isArray(rawStoredFilters?.activeSources);
+
+  state.filters = {
+    categoryKey: resolveCategoryKey(rawStoredFilters?.categoryKey, null),
+    activeSources: normalizeSources(rawStoredFilters?.activeSources),
+    search: String(rawStoredFilters?.search || "").trim(),
+    minScore: clampScore(rawStoredFilters?.minScore),
+    region: String(rawStoredFilters?.region || "").trim().toUpperCase().slice(0, 10),
+    maxPrice: normalizeMaxPrice(rawStoredFilters?.maxPrice)
+  };
+
+  if (!state.filters.activeSources.length) {
+    state.filters.activeSources = [...SOURCE_OPTIONS];
+  }
+
   state.history = await getItem(STORAGE_KEYS.history, []);
   state.tabContext = await fetchTabContext();
 
-  renderTabContext();
   renderFilters();
+  renderTabContext();
 
   if (state.token) {
     try {
@@ -439,8 +771,9 @@ async function bootstrap() {
 
     try {
       const settings = await loadSettings(state.token);
-      mapSettingsToFilters(settings);
+      mergeSettings(settings, hadStoredSources);
       renderFilters();
+      await setItem(STORAGE_KEYS.filters, state.filters);
     } catch (error) {
       if (error?.status === 401) {
         await handleSessionExpired();
@@ -473,13 +806,15 @@ refs.loginForm.addEventListener("submit", async (event) => {
 
     try {
       const settings = await loadSettings(state.token);
-      mapSettingsToFilters(settings);
+      mergeSettings(settings, true);
       renderFilters();
     } catch {
-      // Keep local filters if settings endpoint is temporarily unavailable.
+      // Keep local settings if backend is unavailable.
     }
 
     refs.passwordInput.value = "";
+    await setItem(STORAGE_KEYS.filters, state.filters);
+
     renderAuth();
     await refreshData();
     setFeedback("Login realizado com sucesso.", "ok");
@@ -510,18 +845,21 @@ refs.logoutButton.addEventListener("click", async () => {
 
 refs.useDomainButton.addEventListener("click", async () => {
   if (!state.tabContext?.domain) {
-    setFeedback("Domínio da aba não identificado.", "error");
+    setFeedback("Domínio atual não identificado.", "error");
     return;
   }
 
-  refs.sourceInput.value = normalizeDomain(state.tabContext.domain);
-  if (!refs.searchInput.value && state.tabContext.vehicleHint) {
-    refs.searchInput.value = state.tabContext.vehicleHint;
+  const matchedSource = findSourceByDomain(state.tabContext.domain);
+  if (!matchedSource) {
+    setFeedback("Domínio sem fonte mapeada.", "error");
+    return;
   }
 
-  readFilters();
+  state.filters.activeSources = [matchedSource];
+  renderFilters();
+  renderStatus();
   await setItem(STORAGE_KEYS.filters, state.filters);
-  setFeedback("Domínio aplicado aos filtros.", "ok");
+  setFeedback(`Fonte ativa definida: ${matchedSource}.`, "ok");
 });
 
 refs.applyFiltersButton.addEventListener("click", async () => {
@@ -530,8 +868,13 @@ refs.applyFiltersButton.addEventListener("click", async () => {
     return;
   }
 
-  readFilters();
-  renderFilters();
+  readFiltersFromForm();
+
+  if (!state.filters.activeSources.length) {
+    setFeedback("Selecione ao menos uma fonte.", "error");
+    return;
+  }
+
   await setItem(STORAGE_KEYS.filters, state.filters);
 
   try {
@@ -544,18 +887,25 @@ refs.applyFiltersButton.addEventListener("click", async () => {
 
 refs.saveSettingsButton.addEventListener("click", async () => {
   if (!state.token) {
-    setFeedback("Faça login para salvar filtros.", "error");
+    setFeedback("Faça login para salvar preferências.", "error");
     return;
   }
 
-  readFilters();
-  renderFilters();
+  readFiltersFromForm();
+
+  if (!state.filters.activeSources.length) {
+    setFeedback("Selecione ao menos uma fonte.", "error");
+    return;
+  }
+
   await setItem(STORAGE_KEYS.filters, state.filters);
 
   try {
-    const saved = await saveSettings(state.token, filtersPayload());
-    mapSettingsToFilters(saved);
+    const saved = await saveSettings(state.token, settingsPayload());
+    mergeSettings(saved, true);
     renderFilters();
+    renderStatus();
+    await setItem(STORAGE_KEYS.filters, state.filters);
     setFeedback("Preferências salvas no servidor.", "ok");
   } catch (error) {
     if (error?.status === 401) {
@@ -569,24 +919,31 @@ refs.saveSettingsButton.addEventListener("click", async () => {
 
 refs.runNowButton.addEventListener("click", async () => {
   if (!state.token) {
-    setFeedback("Faça login para rodar scanner.", "error");
+    setFeedback("Faça login para rodar o scanner.", "error");
+    return;
+  }
+
+  readFiltersFromForm();
+
+  if (!state.filters.activeSources.length) {
+    setFeedback("Selecione ao menos uma fonte.", "error");
     return;
   }
 
   refs.runNowButton.disabled = true;
-  state.scanStatus = "Executando";
+  state.scanStatus = "Executando varredura";
   renderStatus();
   setFeedback("Executando varredura...", "ok");
 
   try {
     const result = await runScanner(state.token);
     state.scanStatus = result.success
-      ? `Concluída ${new Date(result.completedAtUtc).toLocaleTimeString("pt-BR")}`
+      ? `Concluída às ${new Date(result.completedAtUtc).toLocaleTimeString("pt-BR")}`
       : "Falhou";
-    renderStatus();
 
+    renderStatus();
     await refreshData();
-    setFeedback(result.message || `Varredura concluída: ${result.refreshedLots || 0} lotes.`, "ok");
+    setFeedback(result.message || `Varredura concluída: ${result.refreshedLots || 0} lotes atualizados.`, "ok");
   } catch (error) {
     if (error?.status === 401) {
       await handleSessionExpired();

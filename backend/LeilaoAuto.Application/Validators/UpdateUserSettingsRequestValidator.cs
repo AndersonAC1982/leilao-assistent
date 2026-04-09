@@ -23,5 +23,22 @@ public sealed class UpdateUserSettingsRequestValidator : AbstractValidator<Updat
         RuleFor(request => request.Region)
             .MaximumLength(10)
             .When(request => !string.IsNullOrWhiteSpace(request.Region));
+
+        RuleFor(request => request.Category)
+            .NotEmpty()
+            .MaximumLength(60);
+
+        RuleForEach(request => request.ActiveSources)
+            .NotEmpty()
+            .MaximumLength(60)
+            .When(request => request.ActiveSources is not null);
+
+        RuleFor(request => request.ActiveSources)
+            .Must(sources => sources is null || sources.Count <= 20)
+            .WithMessage("No maximo 20 fontes podem ser configuradas por usuario.");
+
+        RuleFor(request => request.MaxPrice)
+            .GreaterThan(0)
+            .When(request => request.MaxPrice.HasValue);
     }
 }

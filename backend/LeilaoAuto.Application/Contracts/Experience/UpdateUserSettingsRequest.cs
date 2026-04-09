@@ -8,4 +8,7 @@ public sealed class UpdateUserSettingsRequest
     public int? VehicleType { get; init; }
     public string? Region { get; init; }
     public bool AdvancedFiltersEnabled { get; init; }
+    public string Category { get; init; } = "Todas";
+    public IReadOnlyList<string>? ActiveSources { get; init; }
+    public decimal? MaxPrice { get; init; }
 }

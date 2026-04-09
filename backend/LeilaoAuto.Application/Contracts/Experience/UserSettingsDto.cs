@@ -7,4 +7,7 @@ public sealed record UserSettingsDto(
     int? VehicleType,
     string? Region,
     bool AdvancedFiltersEnabled,
+    string Category,
+    IReadOnlyList<string> ActiveSources,
+    decimal? MaxPrice,
     DateTimeOffset UpdatedAtUtc);
