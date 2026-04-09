@@ -1,15 +1,11 @@
-﻿chrome.runtime.onInstalled.addListener(async () => {
-  await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 });
 
-chrome.runtime.onStartup.addListener(async () => {
-  await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
-});
-
-chrome.action.onClicked.addListener(async (tab) => {
-  if (!tab.id) {
+chrome.action.onClicked.addListener((tab) => {
+  if (!tab?.id) {
     return;
   }
 
-  await chrome.sidePanel.open({ tabId: tab.id });
+  chrome.sidePanel.open({ tabId: tab.id });
 });

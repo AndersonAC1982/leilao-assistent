@@ -16,7 +16,7 @@ export async function login(email, password) {
 }
 
 export async function me(token) {
-  return request('/me', { token });
+  return request('/auth/me', { token });
 }
 
 export async function logout() {
