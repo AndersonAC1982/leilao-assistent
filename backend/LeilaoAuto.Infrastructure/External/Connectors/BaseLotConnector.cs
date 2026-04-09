@@ -26,8 +26,8 @@ public abstract class BaseLotConnector : ILotConnector
                 "https://www.superbid.net/oferta/veiculo-automotor-gm-omega-gls-4583144",
                 "https://www.superbid.net/oferta/veiculo-automotor-gm-omega-gls-4583144?lote=2001"),
             ["sodresantoro"] = (
-                "https://www.sodresantoro.com.br/veiculos/lotes?lot_brand=jeep&page=1",
-                "https://www.sodresantoro.com.br/veiculos/lotes?lot_brand=toyota&page=2"),
+                "https://hml-web.sodresantoro.com.br/leilao/28060/lote/2714922/",
+                "https://hml-web.sodresantoro.com.br/leilao/28060/lote/2713353/"),
             ["vipleiloes"] = (
                 "https://www.vipleiloes.com.br/evento/anuncio/yamaha-ybr150-factor-25372",
                 "https://www.vipleiloes.com.br/evento/anuncio/fiat-uno-electronic-25172"),

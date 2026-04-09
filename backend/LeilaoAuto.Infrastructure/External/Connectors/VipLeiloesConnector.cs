@@ -42,32 +42,30 @@ public class VipLeiloesConnector : BaseLotConnector
                 return BuildMockRawLots("vipleiloes", "Vip Leiloes");
             }
 
-            var links = ExtractAnchorHrefs(html)
-                .Select(href => ToAbsoluteUrl(href, PortalUrl))
-                .Where(url => !string.IsNullOrWhiteSpace(url))
-                .Select(url => NormalizeUrlForStorage(url!))
-                .Where(ValidateLotUrl)
-                .Where(url => MatchesFilters(url, filters))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .Take(24)
+            var catalogOffers = ExtractCatalogOffers(html)
+                .Where(offer => MatchesFilters(offer, filters))
+                .Take(32)
                 .ToList();
 
-            if (links.Count == 0)
+            if (catalogOffers.Count == 0)
             {
                 return BuildMockRawLots("vipleiloes", "Vip Leiloes");
             }
 
-            return links
-                .Select(url =>
+            return catalogOffers
+                .Select(offer =>
                 {
-                    var lotNumber = ExtractLotNumberFromUrl(url) ?? Guid.NewGuid().ToString("N")[..8];
+                    var lotNumber = ExtractLotNumberFromUrl(offer.LotUrl) ?? Guid.NewGuid().ToString("N")[..8];
                     return (object)new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
                     {
                         ["externalId"] = lotNumber,
                         ["lotNumber"] = lotNumber,
-                        ["lotUrl"] = url,
+                        ["lotUrl"] = offer.LotUrl,
                         ["auctioneer"] = "Vip Leiloes",
-                        ["status"] = "Active"
+                        ["status"] = "Active",
+                        ["titleHint"] = offer.Title,
+                        ["currentBid"] = offer.CurrentBid,
+                        ["uf"] = offer.Uf
                     };
                 })
                 .ToList();
@@ -95,8 +93,24 @@ public class VipLeiloesConnector : BaseLotConnector
         }
 
         var vehicleText = ExtractTableValue(html, "Veículo");
+        if (string.IsNullOrWhiteSpace(vehicleText))
+        {
+            vehicleText = ExtractByPattern(html, "<h1[^>]*class=\"detan-name[^>]*>(?<value>.*?)</h1>") ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(vehicleText) && map.TryGetValue("titleHint", out var titleHint))
+            {
+                vehicleText = titleHint?.ToString() ?? string.Empty;
+            }
+        }
+
         var yearText = ExtractTableValue(html, "Ano");
         var locationText = ExtractTableValue(html, "Localização");
+        if (string.IsNullOrWhiteSpace(locationText))
+        {
+            locationText = ExtractByPattern(
+                html,
+                "<p\\s+class=\"offer-local\"[^>]*>\\s*Local\\s+do\\s+Lote:\\s*<span>(?<value>.*?)</span>");
+        }
+
         var plateText = ExtractTableValue(html, "Final da placa");
         var provenanceText = ExtractTableValue(html, "Procedência");
         var observations = ExtractObservations(html);
@@ -108,7 +122,7 @@ public class VipLeiloesConnector : BaseLotConnector
         }
 
         var year = ExtractYearFromText(yearText) ?? ExtractYearFromText(lotUrl!) ?? DateTime.UtcNow.Year;
-        var currentBid = ExtractCurrentBid(html);
+        var currentBid = ExtractCurrentBid(html) ?? TryReadMoneyFromMap(map, "currentBid");
         var initialBid = ExtractInitialBid(html);
         var status = ResolveStatus(html);
         map.TryGetValue("externalId", out var extValue);
@@ -119,7 +133,7 @@ public class VipLeiloesConnector : BaseLotConnector
                          ?? $"vip-{Guid.NewGuid():N}";
 
         var lotNumber = ExtractLotNumberFromUrl(lotUrl!) ?? externalId;
-        var uf = ExtractUf(locationText, plateText);
+        var uf = ExtractUf(locationText ?? string.Empty, plateText ?? string.Empty);
 
         var vehicleCondition = ResolveVehicleCondition($"{provenanceText} {observations}");
         var vehicleType = ResolveVehicleType(vehicleText, lotUrl!);
@@ -176,27 +190,89 @@ public class VipLeiloesConnector : BaseLotConnector
         return Regex.IsMatch(lastSegment, "-\\d{4,}$", RegexOptions.CultureInvariant);
     }
 
-    private static bool MatchesFilters(string url, LotSearchFilterRequest filters)
+    private static IReadOnlyList<CatalogOffer> ExtractCatalogOffers(string html)
     {
-        var slug = url.Split('/', StringSplitOptions.RemoveEmptyEntries).LastOrDefault() ?? string.Empty;
-        var normalized = NormalizeToken(slug);
+        var offers = new Dictionary<string, CatalogOffer>(StringComparer.OrdinalIgnoreCase);
 
-        if (!string.IsNullOrWhiteSpace(filters.Make) && !normalized.Contains(NormalizeToken(filters.Make), StringComparison.Ordinal))
+        foreach (Match match in Regex.Matches(
+                     html,
+                     "<a\\s+class=\"anc-body\"\\s+href=\"(?<href>/evento/anuncio/[^\"]+)\"[^>]*>(?<body>.*?)</a>",
+                     RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.CultureInvariant))
+        {
+            var lotUrl = NormalizeUrlForStorage(ToAbsoluteUrl(match.Groups["href"].Value, PortalUrl)!);
+            if (!ValidateLotUrlStatic(lotUrl))
+            {
+                continue;
+            }
+
+            var body = match.Groups["body"].Value;
+            var title = ExtractByPattern(body, "<h3[^>]*>(?<value>.*?)</h3>");
+            var currentBid = TryParseMoneyPtBr(ExtractByPattern(body, "class=\"valor-atual\"[^>]*>\\s*R\\$\\s*(?<value>[0-9\\.\\,]+)"));
+            var uf = ExtractByPattern(body, "<strong>\\s*Local:\\s*</strong>\\s*(?<value>[A-Z]{2})");
+            offers[lotUrl] = new CatalogOffer(lotUrl, title, currentBid, uf);
+        }
+
+        if (offers.Count > 0)
+        {
+            return offers.Values.ToList();
+        }
+
+        return ExtractAnchorHrefs(html)
+            .Select(href => ToAbsoluteUrl(href, PortalUrl))
+            .Where(url => !string.IsNullOrWhiteSpace(url))
+            .Select(url => NormalizeUrlForStorage(url!))
+            .Where(ValidateLotUrlStatic)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Select(url => new CatalogOffer(url, null, null, null))
+            .Take(24)
+            .ToList();
+    }
+
+    private static bool MatchesFilters(CatalogOffer offer, LotSearchFilterRequest filters)
+    {
+        var reference = $"{offer.Title} {offer.LotUrl}";
+        var normalized = NormalizeToken(reference);
+
+        if (!string.IsNullOrWhiteSpace(filters.Make)
+            && !normalized.Contains(NormalizeToken(filters.Make), StringComparison.Ordinal))
         {
             return false;
         }
 
-        if (!string.IsNullOrWhiteSpace(filters.Model) && !normalized.Contains(NormalizeToken(filters.Model), StringComparison.Ordinal))
+        if (!string.IsNullOrWhiteSpace(filters.Model)
+            && !normalized.Contains(NormalizeToken(filters.Model), StringComparison.Ordinal))
         {
             return false;
         }
 
-        if (filters.Year.HasValue && !slug.Contains(filters.Year.Value.ToString(), StringComparison.Ordinal))
+        if (filters.Year.HasValue && !reference.Contains(filters.Year.Value.ToString(), StringComparison.Ordinal))
         {
             return false;
         }
 
         return true;
+    }
+
+    private static bool ValidateLotUrlStatic(string url)
+    {
+        if (string.IsNullOrWhiteSpace(url) || !Uri.TryCreate(url, UriKind.Absolute, out var uri))
+        {
+            return false;
+        }
+
+        if (!uri.Host.EndsWith("vipleiloes.com.br", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        var path = uri.AbsolutePath.TrimEnd('/').ToLowerInvariant();
+        if (!path.StartsWith("/evento/anuncio/", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var last = path.Split('/', StringSplitOptions.RemoveEmptyEntries).LastOrDefault() ?? string.Empty;
+        return Regex.IsMatch(last, "-\\d{4,}$", RegexOptions.CultureInvariant);
     }
 
     private static string? ExtractLotNumberFromUrl(string url)
@@ -251,7 +327,17 @@ public class VipLeiloesConnector : BaseLotConnector
             "data-bind-valorAtual[^>]*>\\s*R\\$\\s*(?<value>[0-9\\.\\,]+)",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
-        return match.Success ? TryParseMoneyPtBr(match.Groups["value"].Value) : null;
+        if (match.Success)
+        {
+            return TryParseMoneyPtBr(match.Groups["value"].Value);
+        }
+
+        var fallback = Regex.Match(
+            html,
+            "class=\"valor-atual\"[^>]*>\\s*R\\$\\s*(?<value>[0-9\\.\\,]+)",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        return fallback.Success ? TryParseMoneyPtBr(fallback.Groups["value"].Value) : null;
     }
 
     private static decimal? ExtractInitialBid(string html)
@@ -266,7 +352,25 @@ public class VipLeiloesConnector : BaseLotConnector
 
     private static LotStatus ResolveStatus(string html)
     {
-        if (Regex.IsMatch(html, "lote\\s+encerrado|leil[aã]o\\s+encerrado", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+        var closedBanner = Regex.Match(
+            html,
+            "<div[^>]*data-bind-eventoEncerrado[^>]*class=\"(?<classes>[^\"]*)\"",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        if (closedBanner.Success)
+        {
+            var classes = closedBanner.Groups["classes"].Value;
+            if (!classes.Contains("d-none", StringComparison.OrdinalIgnoreCase))
+            {
+                return LotStatus.Closed;
+            }
+        }
+
+        if (Regex.IsMatch(
+                html,
+                "lote\\s+encerrado|leil[aã]o\\s+encerrado|este\\s+leil[aã]o\\s+est[aá]\\s+encerrado",
+                RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)
+            && !Regex.IsMatch(html, "data-bind-eventoEncerrado[^>]*d-none", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
         {
             return LotStatus.Closed;
         }
@@ -385,4 +489,33 @@ public class VipLeiloesConnector : BaseLotConnector
 
         return "SP";
     }
+
+    private static string? ExtractByPattern(string html, string pattern)
+    {
+        var match = Regex.Match(html, pattern, RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.CultureInvariant);
+        if (!match.Success)
+        {
+            return null;
+        }
+
+        var raw = Regex.Replace(match.Groups["value"].Value, "<[^>]+>", " ");
+        var decoded = Regex.Replace(HtmlDecode(raw), "\\s+", " ").Trim();
+        return string.IsNullOrWhiteSpace(decoded) ? null : decoded;
+    }
+
+    private static decimal? TryReadMoneyFromMap(IReadOnlyDictionary<string, object?> map, string key)
+    {
+        if (!map.TryGetValue(key, out var value) || value is null)
+        {
+            return null;
+        }
+
+        return value switch
+        {
+            decimal decimalValue => decimalValue,
+            _ => TryParseMoneyPtBr(value.ToString())
+        };
+    }
+
+    private sealed record CatalogOffer(string LotUrl, string? Title, decimal? CurrentBid, string? Uf);
 }
