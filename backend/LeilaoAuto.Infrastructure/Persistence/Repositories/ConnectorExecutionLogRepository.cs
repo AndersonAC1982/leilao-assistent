@@ -30,4 +30,21 @@ public class ConnectorExecutionLogRepository : BaseRepository<ConnectorExecution
             .Take(safeTake)
             .ToListAsync(cancellationToken);
     }
+
+    public Task<int> CountByUserAndConnectorAsync(
+        Guid userId,
+        string connectorName,
+        DateTime fromInclusiveUtc,
+        DateTime toExclusiveUtc,
+        CancellationToken cancellationToken)
+    {
+        return DbContext.ConnectorExecutionLogs
+            .AsNoTracking()
+            .Where(log =>
+                log.UserId == userId
+                && log.ConnectorName == connectorName
+                && log.ExecutedAt >= fromInclusiveUtc
+                && log.ExecutedAt < toExclusiveUtc)
+            .CountAsync(cancellationToken);
+    }
 }

@@ -1,6 +1,7 @@
 using LeilaoAuto.Application.Contracts.Lots;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Text.RegularExpressions;
 
 namespace LeilaoAuto.Infrastructure.External.Connectors;
 
@@ -58,5 +59,36 @@ public class SuperbidConnector : BaseLotConnector
         var map = EnsureDictionary(raw);
         var parsed = BuildProviderLot(map, "superbid", "Superbid");
         return Task.FromResult(parsed);
+    }
+
+    public override bool ValidateLotUrl(string? url)
+    {
+        if (!base.ValidateLotUrl(url) || string.IsNullOrWhiteSpace(url) || !Uri.TryCreate(url, UriKind.Absolute, out var uri))
+        {
+            return false;
+        }
+
+        var host = uri.Host.ToLowerInvariant();
+        if (!host.Equals("superbid.net", StringComparison.Ordinal)
+            && !host.EndsWith(".superbid.net", StringComparison.Ordinal)
+            && !host.Equals("superbid.com.br", StringComparison.Ordinal)
+            && !host.EndsWith(".superbid.com.br", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var path = uri.AbsolutePath.TrimEnd('/').ToLowerInvariant();
+        if (!path.StartsWith("/oferta/", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        if (path is "/oferta" or "/oferta/lista" or "/busca" or "/lotes")
+        {
+            return false;
+        }
+
+        var lastSegment = path.Split('/', StringSplitOptions.RemoveEmptyEntries).LastOrDefault() ?? string.Empty;
+        return Regex.IsMatch(lastSegment, @"-\d{4,}$", RegexOptions.CultureInvariant);
     }
 }

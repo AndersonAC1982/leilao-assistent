@@ -40,4 +40,29 @@ public class SodreSantoroConnector : BaseLotConnector
         var parsed = BuildProviderLot(map, "sodresantoro", "Sodre Santoro");
         return Task.FromResult(parsed);
     }
+
+    public override bool ValidateLotUrl(string? url)
+    {
+        if (!base.ValidateLotUrl(url) || string.IsNullOrWhiteSpace(url) || !Uri.TryCreate(url, UriKind.Absolute, out var uri))
+        {
+            return false;
+        }
+
+        var host = uri.Host.ToLowerInvariant();
+        if (!host.Equals("sodresantoro.com.br", StringComparison.Ordinal)
+            && !host.EndsWith(".sodresantoro.com.br", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var path = uri.AbsolutePath.TrimEnd('/').ToLowerInvariant();
+        if (path is "/" or "/veiculos" or "/veiculos/lotes" or "/lotes")
+        {
+            return false;
+        }
+
+        return path.Contains("/lote", StringComparison.Ordinal)
+               || path.Contains("/oferta", StringComparison.Ordinal)
+               || path.Contains("/detalhe", StringComparison.Ordinal);
+    }
 }

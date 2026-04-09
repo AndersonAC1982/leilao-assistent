@@ -13,7 +13,7 @@ public static class DatabaseSeeder
             ["Superbid"] = "https://www.superbid.net/oferta/veiculo-automotor-gm-omega-gls-4583144",
             ["VIP Leiloes"] = "https://www.vipleiloes.com.br/evento/anuncio/yamaha-ybr150-factor-25372",
             ["Sodre Santoro"] = "https://www.sodresantoro.com.br/veiculos/lotes?lot_brand=jeep&page=1",
-            ["Mega Leiloes"] = "https://www.megaleiloes.com.br/imoveis/apartamentos/sp/sao-paulo/apartamento-218-m2-03-vagas-brooklin-paulista-sao-paulo-sp-x121107",
+            ["Mega Leiloes"] = "https://www.megaleiloes.com.br/veiculos/carros/sp/santos/carro-honda-civic-lx-2004-j121973",
             ["Pacto Leiloes"] = "https://www.pactoleiloes.com.br/lotes/9590/2532/1/renault/clio/expression-16-hiflex-2007-2008-branca-dourados-ms",
             ["Freitas"] = "https://www.freitasleiloeiro.com.br/leiloes/lote?leilaoid=6055&lote=64",
             ["Milan Leiloes"] = "https://www.milanleiloes.com.br/Geral.asp?CL=13337",

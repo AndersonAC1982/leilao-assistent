@@ -134,3 +134,55 @@ npm --prefix apps/web run build
 ## Diagnostico MVP extensao
 
 - detalhes tecnicos: `docs/MVP_EXTENSAO_DIAGNOSTICO.md`
+
+## Fortalecimento comercial e tecnico (fase atual)
+
+### Conectores reais (ativos ponta a ponta)
+
+- Superbid
+- VipLeiloes
+- MegaLeiloes
+
+Cada um com:
+
+- busca real via HTTP
+- parse dedicado por dominio
+- validacao estrita de URL exata do lote (bloqueia home/categoria/busca)
+
+### Conectores ainda mockados (estrutura pronta + TODO tecnico)
+
+- SodreSantoro (mock com validacao de URL endurecida)
+- Freitas
+- Zukerman
+- PactoLeiloes
+- MilanLeiloes
+
+### Endpoints da extensao com regras por plano
+
+- `GET /api/opportunities`
+- `POST /api/scanner/run`
+- `GET /api/history`
+- `GET /api/settings`
+- `PUT /api/settings`
+
+Regras aplicadas:
+
+- Free: limite baixo de execucoes e resultados
+- Pro: limite ampliado
+- Premium: historico ampliado + filtros avancados
+- Elite: maior limite + conectores avancados
+
+### Observabilidade basica adicionada
+
+- logs estruturados por `userId`, `plan`, endpoint e latencia
+- logs por conector com `raw/parsed/discarded` e latencia
+- persistencia de execucao por conector em `ConnectorExecutionLog`
+- rastreio de descarte por URL invalida
+
+### Itens criticos antes da monetizacao
+
+- ampliar conectores reais para reduzir dependencia de mocks
+- hardening anti-bloqueio (captcha/anti-bot/rotacao) nos conectores reais
+- Stripe real (checkout + webhook assinado + reconciliacao)
+- rate limit e antifraude por usuario/plano
+- testes E2E de extensao com ambiente integrado API + banco

@@ -24,6 +24,7 @@
   <ItemGroup>
     <ProjectReference Include="..\LeilaoAuto.Application\LeilaoAuto.Application.csproj" />
     <ProjectReference Include="..\LeilaoAuto.Domain\LeilaoAuto.Domain.csproj" />
+    <ProjectReference Include="..\LeilaoAuto.Infrastructure\LeilaoAuto.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
