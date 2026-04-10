@@ -1,7 +1,8 @@
 ﻿const STORAGE_KEYS = {
   token: 'leilaoauto_extension_token',
   filters: 'leilaoauto_extension_filters',
-  history: 'leilaoauto_extension_history'
+  history: 'leilaoauto_extension_history',
+  apiBaseUrl: 'leilaoauto_extension_api_base_url'
 };
 
 export async function getItem(key, fallbackValue = null) {

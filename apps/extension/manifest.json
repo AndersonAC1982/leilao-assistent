@@ -1,7 +1,7 @@
 ﻿{
   "manifest_version": 3,
   "name": "LEILAOAUTO",
-  "description": "Assistente operacional de oportunidades em leiloes automotivos.",
+  "description": "Assistente operacional de oportunidades em leiloes.",
   "version": "1.0.0",
   "action": {
     "default_title": "LEILAOAUTO"
@@ -13,8 +13,10 @@
     "activeTab"
   ],
   "host_permissions": [
-    "http://localhost:8080/*",
-    "https://localhost:8080/*"
+    "http://localhost/*",
+    "https://localhost/*",
+    "http://127.0.0.1/*",
+    "https://127.0.0.1/*"
   ],
   "background": {
     "service_worker": "background.js"

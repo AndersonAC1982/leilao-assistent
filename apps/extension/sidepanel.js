@@ -4,8 +4,14 @@ import { loadOpportunities } from "./services/opportunities.js";
 import { runScanner } from "./services/scanner.js";
 import { loadSettings, saveSettings } from "./services/settings.js";
 import { getItem, setItem, STORAGE_KEYS } from "./services/storage.js";
+import {
+  discoverApiBaseUrl,
+  getConfiguredApiBaseUrl,
+  setConfiguredApiBaseUrl,
+  testApiConnection
+} from "./services/api.js";
 
-const API_HINT = "API indisponível. Confirme se a API está em http://localhost:8080.";
+const API_HINT = "API indisponivel. Ajuste o endpoint da API e confirme se o backend esta online.";
 
 const SOURCE_OPTIONS = [
   "Superbid",
@@ -57,13 +63,21 @@ const state = {
   opportunities: [],
   history: [],
   scanStatus: "Aguardando login",
-  filters: { ...DEFAULT_FILTERS }
+  filters: { ...DEFAULT_FILTERS },
+  api: {
+    baseUrl: "",
+    online: false
+  }
 };
 
 const refs = {
   loginForm: document.getElementById("login-form"),
   emailInput: document.getElementById("email-input"),
   passwordInput: document.getElementById("password-input"),
+  apiBaseInput: document.getElementById("api-base-input"),
+  testApiButton: document.getElementById("test-api-button"),
+  detectApiButton: document.getElementById("detect-api-button"),
+  apiStatus: document.getElementById("api-status"),
   sessionView: document.getElementById("session-view"),
   sessionEmail: document.getElementById("session-email"),
   logoutButton: document.getElementById("logout-button"),
@@ -364,6 +378,11 @@ function friendlyError(error) {
     return "Falha inesperada.";
   }
 
+  if (error?.code === "API_UNREACHABLE") {
+    const endpoint = error.apiBaseUrl || state.api.baseUrl || refs.apiBaseInput.value || "endpoint configurado";
+    return `API offline em ${endpoint}. Rode \"docker compose up -d postgres api\" ou ajuste o endpoint.`;
+  }
+
   const message = String(error.message || "").trim();
   if (message === "Failed to fetch" || message.includes("NetworkError")) {
     return API_HINT;
@@ -378,6 +397,86 @@ function setFeedback(message, type = "ok") {
   if (message) {
     refs.feedback.classList.add(type);
   }
+}
+
+function setApiStatus(message, type = "ok") {
+  if (!refs.apiStatus) {
+    return;
+  }
+
+  refs.apiStatus.textContent = message || "";
+  refs.apiStatus.classList.remove("ok", "error");
+  refs.apiStatus.classList.add(type);
+}
+
+function normalizeApiInput(value) {
+  return String(value || "").trim();
+}
+
+async function initializeApiEndpoint() {
+  if (!refs.apiBaseInput) {
+    return;
+  }
+
+  const configured = await getConfiguredApiBaseUrl();
+  if (configured) {
+    refs.apiBaseInput.value = configured;
+  }
+
+  const discovery = await discoverApiBaseUrl(false);
+  if (discovery.apiBaseUrl) {
+    refs.apiBaseInput.value = discovery.apiBaseUrl;
+    state.api.baseUrl = discovery.apiBaseUrl;
+  }
+
+  state.api.online = discovery.ok;
+
+  if (discovery.ok) {
+    setApiStatus(`API online em ${discovery.apiBaseUrl}`, "ok");
+  } else {
+    setApiStatus("API offline. Clique em 'Testar conexao' ou 'Auto detectar'.", "error");
+    state.scanStatus = "API offline";
+  }
+}
+
+async function ensureApiOnline(forceAutoDetect = true) {
+  if (!refs.apiBaseInput) {
+    return true;
+  }
+
+  const typedInput = normalizeApiInput(refs.apiBaseInput.value);
+
+  if (typedInput) {
+    const test = await testApiConnection(typedInput);
+    if (test.ok) {
+      const saved = await setConfiguredApiBaseUrl(test.apiBaseUrl);
+      refs.apiBaseInput.value = saved || typedInput;
+      state.api.baseUrl = saved || typedInput;
+      state.api.online = true;
+      setApiStatus(`API online em ${state.api.baseUrl}`, "ok");
+      return true;
+    }
+  }
+
+  if (!forceAutoDetect) {
+    state.api.online = false;
+    setApiStatus("API offline no endpoint informado.", "error");
+    return false;
+  }
+
+  const auto = await discoverApiBaseUrl(true);
+  if (auto.ok && auto.apiBaseUrl) {
+    refs.apiBaseInput.value = auto.apiBaseUrl;
+    state.api.baseUrl = auto.apiBaseUrl;
+    state.api.online = true;
+    setApiStatus(`API online em ${auto.apiBaseUrl}`, "ok");
+    return true;
+  }
+
+  state.api.baseUrl = auto.apiBaseUrl || typedInput;
+  state.api.online = false;
+  setApiStatus("Nenhum endpoint valido encontrado. Inicie o backend e tente novamente.", "error");
+  return false;
 }
 
 function renderSources() {
@@ -699,6 +798,14 @@ async function refreshData() {
     return;
   }
 
+  const apiReady = await ensureApiOnline(false);
+  if (!apiReady) {
+    state.scanStatus = "API offline";
+    renderStatus();
+    setFeedback(API_HINT, "error");
+    return;
+  }
+
   const query = buildOpportunityQuery();
 
   const [opportunitiesResult, historyResult] = await Promise.allSettled([
@@ -759,25 +866,35 @@ async function bootstrap() {
 
   renderFilters();
   renderTabContext();
+  await initializeApiEndpoint();
 
   if (state.token) {
-    try {
-      state.me = await me(state.token);
-      state.scanStatus = "Pronta";
-    } catch {
-      await handleSessionExpired();
-      return;
+    if (state.api.online) {
+      try {
+        state.me = await me(state.token);
+        state.scanStatus = "Pronta";
+      } catch (error) {
+        if (error?.status === 401) {
+          await handleSessionExpired();
+          return;
+        }
+
+        state.scanStatus = "API offline";
+        setFeedback(friendlyError(error), "error");
+      }
     }
 
-    try {
-      const settings = await loadSettings(state.token);
-      mergeSettings(settings, hadStoredSources);
-      renderFilters();
-      await setItem(STORAGE_KEYS.filters, state.filters);
-    } catch (error) {
-      if (error?.status === 401) {
-        await handleSessionExpired();
-        return;
+    if (state.me) {
+      try {
+        const settings = await loadSettings(state.token);
+        mergeSettings(settings, hadStoredSources);
+        renderFilters();
+        await setItem(STORAGE_KEYS.filters, state.filters);
+      } catch (error) {
+        if (error?.status === 401) {
+          await handleSessionExpired();
+          return;
+        }
       }
     }
   }
@@ -794,8 +911,40 @@ async function bootstrap() {
   }
 }
 
+refs.testApiButton?.addEventListener("click", async () => {
+  const ok = await ensureApiOnline(true);
+  if (ok) {
+    setFeedback("Conexao com API validada.", "ok");
+  } else {
+    setFeedback("API offline. Inicie backend ou ajuste endpoint.", "error");
+  }
+});
+
+refs.detectApiButton?.addEventListener("click", async () => {
+  const discovered = await discoverApiBaseUrl(true);
+  if (discovered.ok && discovered.apiBaseUrl) {
+    refs.apiBaseInput.value = discovered.apiBaseUrl;
+    state.api.baseUrl = discovered.apiBaseUrl;
+    state.api.online = true;
+    setApiStatus(`API online em ${discovered.apiBaseUrl}`, "ok");
+    setFeedback("Endpoint detectado automaticamente.", "ok");
+    return;
+  }
+
+  state.api.online = false;
+  setApiStatus("Nao foi possivel detectar a API automaticamente.", "error");
+  setFeedback("Nao foi possivel detectar API. Inicie backend ou informe endpoint manual.", "error");
+});
+
 refs.loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
+
+  const apiReady = await ensureApiOnline(true);
+  if (!apiReady) {
+    setFeedback("API offline. Sem conexao nao e possivel autenticar.", "error");
+    return;
+  }
+
   setFeedback("Realizando login...", "ok");
 
   try {
@@ -891,6 +1040,12 @@ refs.saveSettingsButton.addEventListener("click", async () => {
     return;
   }
 
+  const apiReady = await ensureApiOnline(false);
+  if (!apiReady) {
+    setFeedback("API offline. Nao foi possivel salvar preferencias.", "error");
+    return;
+  }
+
   readFiltersFromForm();
 
   if (!state.filters.activeSources.length) {
@@ -920,6 +1075,12 @@ refs.saveSettingsButton.addEventListener("click", async () => {
 refs.runNowButton.addEventListener("click", async () => {
   if (!state.token) {
     setFeedback("Faça login para rodar o scanner.", "error");
+    return;
+  }
+
+  const apiReady = await ensureApiOnline(false);
+  if (!apiReady) {
+    setFeedback("API offline. Nao foi possivel rodar scanner.", "error");
     return;
   }
 
