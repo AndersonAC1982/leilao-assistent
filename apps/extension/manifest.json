@@ -1,10 +1,10 @@
 ﻿{
   "manifest_version": 3,
-  "name": "LEILAOAUTO",
-  "description": "Assistente operacional de oportunidades em leiloes.",
+  "name": "MultiLeilao",
+  "description": "Scanner operacional multi-fonte para oportunidades em leiloes.",
   "version": "1.0.0",
   "action": {
-    "default_title": "LEILAOAUTO"
+    "default_title": "MultiLeilao"
   },
   "permissions": [
     "sidePanel",

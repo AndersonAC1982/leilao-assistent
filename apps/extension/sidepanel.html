@@ -3,15 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>LEILAOAUTO</title>
+    <title>MultiLeilao</title>
     <link rel="stylesheet" href="sidepanel.css" />
   </head>
   <body>
     <main class="panel">
       <section class="section section-header">
-        <p class="brand-eyebrow">LEILAOAUTO</p>
-        <h1>Scanner Multi-Leilao</h1>
-        <p class="subtitle">Ferramenta operacional para varredura rapida de oportunidades.</p>
+        <div>
+          <p class="brand-eyebrow">MULTILEILAO</p>
+          <h1>Scanner Operacional</h1>
+          <p class="subtitle">Varredura multi-fonte para oportunidades em leiloes.</p>
+        </div>
+        <button id="run-now-button" class="btn btn-primary" type="button">Rodar agora</button>
       </section>
 
       <section class="section">
@@ -75,28 +78,31 @@
 
           <label>Contexto / Fonte ativa</label>
           <p id="tab-context" class="muted">Sem contexto da aba.</p>
-          <button id="use-domain-button" class="btn btn-ghost" type="button">Usar dominio atual como fonte</button>
+          <button id="use-domain-button" class="btn btn-ghost" type="button">Usar dominio da aba</button>
 
-          <div class="row-actions">
-            <button id="apply-filters-button" class="btn btn-primary" type="button">Aplicar</button>
-            <button id="save-settings-button" class="btn btn-ghost" type="button">Salvar preferências</button>
-            <button id="run-now-button" class="btn btn-primary" type="button">Rodar agora</button>
+          <div class="row-actions two-actions">
+            <button id="apply-filters-button" class="btn btn-primary" type="button">Aplicar filtros</button>
+            <button id="save-settings-button" class="btn btn-ghost" type="button">Salvar preferencias</button>
           </div>
         </div>
       </section>
 
       <section class="section">
-        <div class="title-row">
-          <h2>3. Resultados</h2>
-          <span id="opportunities-count" class="count">0</span>
-        </div>
+        <h2>3. Status da varredura</h2>
         <p id="scan-status-text" class="muted status-text">Aguardando login</p>
         <div id="status-grid" class="status-grid"></div>
+      </section>
+
+      <section class="section">
+        <div class="title-row">
+          <h2>4. Resultados</h2>
+          <span id="opportunities-count" class="count">0</span>
+        </div>
         <div id="opportunities-list" class="list"></div>
       </section>
 
       <section class="section">
-        <h2>4. Historico</h2>
+        <h2>5. Historico</h2>
         <div id="history-list" class="list"></div>
       </section>
 

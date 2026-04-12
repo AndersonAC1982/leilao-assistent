@@ -4,7 +4,7 @@
     .trim();
 }
 
-function getVehicleHint() {
+function getTabHint() {
   const title = sanitizeText(document.title);
   if (!title) {
     return "";
@@ -26,7 +26,7 @@ function getVehicleHint() {
 }
 
 chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
-  if (request?.type !== "LEILAOAUTO_TAB_CONTEXT") {
+  if (request?.type !== "MULTILEILAO_TAB_CONTEXT") {
     return;
   }
 
@@ -34,6 +34,6 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     href: window.location.href,
     domain: window.location.hostname,
     title: sanitizeText(document.title),
-    vehicleHint: getVehicleHint()
+    tabHint: getTabHint()
   });
 });

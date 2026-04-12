@@ -38,8 +38,14 @@ body {
 }
 
 .section-header {
-  display: grid;
-  gap: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.section-header .btn {
+  min-width: 112px;
 }
 
 .brand-eyebrow {
@@ -155,7 +161,7 @@ input::placeholder {
 
 .row-actions {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
   margin-top: 4px;
 }
@@ -271,6 +277,16 @@ input::placeholder {
 .item-price {
   font-size: 13px;
   font-weight: 600;
+}
+
+.item-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.item-actions .btn:only-child {
+  grid-column: 1 / -1;
 }
 
 .feedback {
