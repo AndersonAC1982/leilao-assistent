@@ -11,7 +11,7 @@ import {
   testApiConnection
 } from "./services/api.js";
 
-const API_HINT = "API indisponível. Ajuste o endpoint da API e confirme se o backend está online.";
+const API_HINT = "Servidor indisponível no momento. Se necessário, use \"Ajustes de conexão\".";
 
 const SOURCE_OPTIONS = [
   "Superbid",
@@ -74,6 +74,7 @@ const refs = {
   loginForm: document.getElementById("login-form"),
   emailInput: document.getElementById("email-input"),
   passwordInput: document.getElementById("password-input"),
+  apiAdvancedBox: document.getElementById("api-advanced-box"),
   apiBaseInput: document.getElementById("api-base-input"),
   testApiButton: document.getElementById("test-api-button"),
   detectApiButton: document.getElementById("detect-api-button"),
@@ -416,8 +417,7 @@ function friendlyError(error) {
   }
 
   if (error?.code === "API_UNREACHABLE") {
-    const endpoint = error.apiBaseUrl || state.api.baseUrl || refs.apiBaseInput.value || "endpoint configurado";
-    return `API offline em ${endpoint}. Rode \"docker compose up -d postgres api\" ou ajuste o endpoint.`;
+    return API_HINT;
   }
 
   const message = String(error.message || "").trim();
@@ -444,6 +444,12 @@ function setApiStatus(message, type = "ok") {
   refs.apiStatus.textContent = message || "";
   refs.apiStatus.classList.remove("ok", "error");
   refs.apiStatus.classList.add(type);
+}
+
+function showAdvancedConnectionBox() {
+  if (refs.apiAdvancedBox && !refs.apiAdvancedBox.open) {
+    refs.apiAdvancedBox.open = true;
+  }
 }
 
 function setButtonBusy(button, busyText, isBusy) {
@@ -497,9 +503,9 @@ async function initializeApiEndpoint() {
   state.api.online = discovery.ok;
 
   if (discovery.ok) {
-    setApiStatus(`API online em ${discovery.apiBaseUrl}`, "ok");
+    setApiStatus("Conexão com servidor: online.", "ok");
   } else {
-    setApiStatus("API offline. Clique em 'Testar conexão' ou 'Autodetectar'.", "error");
+    setApiStatus("Conexão com servidor: offline.", "error");
     state.scanStatus = "API offline";
   }
 }
@@ -518,14 +524,15 @@ async function ensureApiOnline(forceAutoDetect = true) {
       refs.apiBaseInput.value = saved || typedInput;
       state.api.baseUrl = saved || typedInput;
       state.api.online = true;
-      setApiStatus(`API online em ${state.api.baseUrl}`, "ok");
+      setApiStatus("Conexão com servidor: online.", "ok");
       return true;
     }
   }
 
   if (!forceAutoDetect) {
     state.api.online = false;
-    setApiStatus("API offline no endpoint informado.", "error");
+    setApiStatus("Conexão com servidor: offline.", "error");
+    showAdvancedConnectionBox();
     return false;
   }
 
@@ -534,13 +541,14 @@ async function ensureApiOnline(forceAutoDetect = true) {
     refs.apiBaseInput.value = auto.apiBaseUrl;
     state.api.baseUrl = auto.apiBaseUrl;
     state.api.online = true;
-    setApiStatus(`API online em ${auto.apiBaseUrl}`, "ok");
+    setApiStatus("Conexão com servidor: online.", "ok");
     return true;
   }
 
   state.api.baseUrl = auto.apiBaseUrl || typedInput;
   state.api.online = false;
-  setApiStatus("Nenhum endpoint válido encontrado. Inicie o backend e tente novamente.", "error");
+  setApiStatus("Conexão com servidor: offline.", "error");
+  showAdvancedConnectionBox();
   return false;
 }
 
@@ -1012,7 +1020,8 @@ refs.testApiButton?.addEventListener("click", async () => {
     if (ok) {
       setFeedback("Conexão com API validada.", "ok");
     } else {
-      setFeedback("API offline. Inicie backend ou ajuste endpoint.", "error");
+      setFeedback("Servidor indisponível no momento.", "error");
+      showAdvancedConnectionBox();
     }
   });
 });
@@ -1024,14 +1033,15 @@ refs.detectApiButton?.addEventListener("click", async () => {
       refs.apiBaseInput.value = discovered.apiBaseUrl;
       state.api.baseUrl = discovered.apiBaseUrl;
       state.api.online = true;
-      setApiStatus(`API online em ${discovered.apiBaseUrl}`, "ok");
+      setApiStatus("Conexão com servidor: online.", "ok");
       setFeedback("Endpoint detectado automaticamente.", "ok");
       return;
     }
 
     state.api.online = false;
-    setApiStatus("Não foi possível detectar a API automaticamente.", "error");
+    setApiStatus("Conexão com servidor: offline.", "error");
     setFeedback("Não foi possível detectar a API. Inicie o backend ou informe o endpoint manual.", "error");
+    showAdvancedConnectionBox();
   });
 });
 
