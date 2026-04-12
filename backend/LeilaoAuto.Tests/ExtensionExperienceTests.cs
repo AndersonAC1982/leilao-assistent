@@ -98,10 +98,58 @@ public class ExtensionExperienceTests
             userSettingsRepository: new InMemoryUserSettingsRepository(),
             connectors: [CreateSuperbidConnector()]);
 
-        var action = async () => await service.RunScannerAsync(userId, CancellationToken.None);
+        var action = async () => await service.RunScannerAsync(userId, request: null, CancellationToken.None);
 
         await action.Should().ThrowAsync<DomainRuleException>();
         fakeLotService.RefreshCallCount.Should().Be(0, "varredura não deve ser executada quando a cota diária já foi atingida");
+    }
+
+    [Fact]
+    public async Task ScannerRun_Should_Forward_SelectedFilters_And_Persist_Settings()
+    {
+        var user = new User("pro-run@leilaoauto.local", "hash", UserRole.User, PlanType.Pro);
+        var userId = user.Id;
+        var fakeLotService = new FakeLotService(new LotSearchResultDto([], [], []), refreshResult: 7);
+        var userSettingsRepository = new InMemoryUserSettingsRepository();
+
+        var service = BuildService(
+            users: [user],
+            lotService: fakeLotService,
+            connectorExecutionLogRepository: new InMemoryConnectorExecutionLogRepository(),
+            userSettingsRepository: userSettingsRepository,
+            connectors:
+            [
+                CreateSuperbidConnector(),
+                CreateSodreConnector()
+            ]);
+
+        var request = new ScannerRunRequest
+        {
+            Category = "Imóveis",
+            ActiveSources = ["Superbid", "VIP Leilões"],
+            Search = "apartamento",
+            MinScore = 75,
+            Region = "sp",
+            MaxPrice = 250000
+        };
+
+        var response = await service.RunScannerAsync(userId, request, CancellationToken.None);
+
+        response.Success.Should().BeTrue();
+        fakeLotService.RefreshCallCount.Should().Be(1);
+        fakeLotService.LastRefreshSearch.Should().Be("apartamento");
+        fakeLotService.LastRefreshMaxPrice.Should().Be(250000m);
+        fakeLotService.LastRefreshActiveSources.Should().BeEquivalentTo(["Superbid", "VIP Leilões"]);
+        fakeLotService.LastRefreshFilter.Should().NotBeNull();
+        fakeLotService.LastRefreshFilter!.Uf.Should().Be("SP");
+        fakeLotService.LastRefreshFilter.Model.Should().Be("apartamento");
+
+        var persistedSettings = await userSettingsRepository.GetByUserIdAsync(userId, CancellationToken.None);
+        persistedSettings.Should().NotBeNull();
+        persistedSettings!.Category.Should().Be("Imóveis");
+        persistedSettings.Region.Should().Be("SP");
+        persistedSettings.ActiveSources.Should().Be("Superbid|VIP Leilões");
+        persistedSettings.MaxPrice.Should().Be(250000m);
     }
 
     [Fact]
@@ -282,6 +330,10 @@ public class ExtensionExperienceTests
         }
 
         public int RefreshCallCount { get; private set; }
+        public LotSearchFilterRequest? LastRefreshFilter { get; private set; }
+        public IReadOnlyCollection<string>? LastRefreshActiveSources { get; private set; }
+        public string? LastRefreshSearch { get; private set; }
+        public decimal? LastRefreshMaxPrice { get; private set; }
 
         public Task<LotSearchResultDto> SearchAsync(Guid userId, LotSearchFilterRequest filter, CancellationToken cancellationToken)
         {
@@ -305,6 +357,20 @@ public class ExtensionExperienceTests
 
         public Task<int> RefreshAsync(CancellationToken cancellationToken)
         {
+            return RefreshAsync(new LotSearchFilterRequest(), activeSources: null, search: null, maxPrice: null, cancellationToken);
+        }
+
+        public Task<int> RefreshAsync(
+            LotSearchFilterRequest filter,
+            IReadOnlyCollection<string>? activeSources,
+            string? search,
+            decimal? maxPrice,
+            CancellationToken cancellationToken)
+        {
+            LastRefreshFilter = filter;
+            LastRefreshActiveSources = activeSources;
+            LastRefreshSearch = search;
+            LastRefreshMaxPrice = maxPrice;
             RefreshCallCount++;
             return Task.FromResult(_refreshResult);
         }

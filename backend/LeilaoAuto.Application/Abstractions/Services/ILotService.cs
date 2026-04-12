@@ -9,4 +9,10 @@ public interface ILotService
     Task<IReadOnlyList<LotDto>> GetClosedAsync(LotSearchFilterRequest filter, CancellationToken cancellationToken);
     Task<LotDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
     Task<int> RefreshAsync(CancellationToken cancellationToken);
+    Task<int> RefreshAsync(
+        LotSearchFilterRequest filter,
+        IReadOnlyCollection<string>? activeSources,
+        string? search,
+        decimal? maxPrice,
+        CancellationToken cancellationToken);
 }

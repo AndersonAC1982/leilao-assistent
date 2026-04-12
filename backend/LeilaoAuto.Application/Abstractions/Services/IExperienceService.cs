@@ -9,7 +9,10 @@ public interface IExperienceService
         OpportunityFeedQueryRequest request,
         CancellationToken cancellationToken);
 
-    Task<ScannerRunResponseDto> RunScannerAsync(Guid userId, CancellationToken cancellationToken);
+    Task<ScannerRunResponseDto> RunScannerAsync(
+        Guid userId,
+        ScannerRunRequest? request,
+        CancellationToken cancellationToken);
 
     Task<IReadOnlyList<HistoryItemDto>> GetHistoryAsync(Guid userId, int take, CancellationToken cancellationToken);
 

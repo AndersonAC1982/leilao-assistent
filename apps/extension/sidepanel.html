@@ -12,13 +12,13 @@
         <div>
           <p class="brand-eyebrow">MULTILEILAO</p>
           <h1>Scanner Operacional</h1>
-          <p class="subtitle">Varredura multi-fonte para oportunidades em leiloes.</p>
+          <p class="subtitle">Varredura multi-fonte para oportunidades em leilões.</p>
         </div>
         <button id="run-now-button" class="btn btn-primary" type="button">Rodar agora</button>
       </section>
 
       <section class="section">
-        <h2>1. Login / Sessao</h2>
+        <h2>Login e sessão</h2>
         <form id="login-form" class="form-grid">
           <label for="email-input">E-mail</label>
           <input id="email-input" type="email" placeholder="seu@email.com" autocomplete="username" required />
@@ -31,7 +31,7 @@
 
           <div class="row-actions two-actions">
             <button id="test-api-button" class="btn btn-ghost" type="button">Testar conexão</button>
-            <button id="detect-api-button" class="btn btn-ghost" type="button">Auto detectar</button>
+            <button id="detect-api-button" class="btn btn-ghost" type="button">Autodetectar</button>
           </div>
 
           <p id="api-status" class="muted">Verificando API...</p>
@@ -46,7 +46,7 @@
       </section>
 
       <section class="section">
-        <h2>2. Filtros e execucao</h2>
+        <h2>Filtros e execução</h2>
         <div class="form-grid">
           <label for="category-input">Categoria do leilão</label>
           <select id="category-input">
@@ -78,31 +78,31 @@
 
           <label>Contexto / Fonte ativa</label>
           <p id="tab-context" class="muted">Sem contexto da aba.</p>
-          <button id="use-domain-button" class="btn btn-ghost" type="button">Usar dominio da aba</button>
+          <button id="use-domain-button" class="btn btn-ghost" type="button">Usar domínio da aba</button>
 
           <div class="row-actions two-actions">
             <button id="apply-filters-button" class="btn btn-primary" type="button">Aplicar filtros</button>
-            <button id="save-settings-button" class="btn btn-ghost" type="button">Salvar preferencias</button>
+            <button id="save-settings-button" class="btn btn-ghost" type="button">Salvar preferências</button>
           </div>
         </div>
       </section>
 
       <section class="section">
-        <h2>3. Status da varredura</h2>
+        <h2>Status da varredura</h2>
         <p id="scan-status-text" class="muted status-text">Aguardando login</p>
         <div id="status-grid" class="status-grid"></div>
       </section>
 
       <section class="section">
         <div class="title-row">
-          <h2>4. Resultados</h2>
+          <h2>Oportunidades</h2>
           <span id="opportunities-count" class="count">0</span>
         </div>
         <div id="opportunities-list" class="list"></div>
       </section>
 
       <section class="section">
-        <h2>5. Historico</h2>
+        <h2>Histórico</h2>
         <div id="history-list" class="list"></div>
       </section>
 

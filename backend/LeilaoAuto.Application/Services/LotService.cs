@@ -6,6 +6,8 @@ using LeilaoAuto.Application.Contracts.Lots;
 using LeilaoAuto.Domain.Common;
 using LeilaoAuto.Domain.Entities;
 using LeilaoAuto.Domain.Enums;
+using System.Globalization;
+using System.Text;
 
 namespace LeilaoAuto.Application.Services;
 
@@ -129,7 +131,24 @@ public class LotService : ILotService
 
     public async Task<int> RefreshAsync(CancellationToken cancellationToken)
     {
-        var providerLots = await _auctionProviderClient.FetchLatestLotsAsync(cancellationToken);
+        return await RefreshAsync(
+            filter: new LotSearchFilterRequest(),
+            activeSources: null,
+            search: null,
+            maxPrice: null,
+            cancellationToken);
+    }
+
+    public async Task<int> RefreshAsync(
+        LotSearchFilterRequest filter,
+        IReadOnlyCollection<string>? activeSources,
+        string? search,
+        decimal? maxPrice,
+        CancellationToken cancellationToken)
+    {
+        var effectiveFilter = filter ?? new LotSearchFilterRequest();
+        var providerLots = await _auctionProviderClient.FetchLatestLotsAsync(effectiveFilter, activeSources, cancellationToken);
+        providerLots = ApplyRuntimeScannerFilters(providerLots, search, maxPrice);
         if (providerLots.Count == 0)
         {
             return 0;
@@ -175,6 +194,79 @@ public class LotService : ILotService
         await _auctionLotRepository.SaveChangesAsync(cancellationToken);
 
         return domainLots.Count;
+    }
+
+    private static IReadOnlyList<ProviderLotDto> ApplyRuntimeScannerFilters(
+        IReadOnlyList<ProviderLotDto> lots,
+        string? search,
+        decimal? maxPrice)
+    {
+        if (lots.Count == 0)
+        {
+            return lots;
+        }
+
+        var normalizedSearch = NormalizeText(search);
+        var hasSearch = normalizedSearch.Length > 0;
+        var hasMaxPrice = maxPrice.HasValue && maxPrice.Value > 0;
+        if (!hasSearch && !hasMaxPrice)
+        {
+            return lots;
+        }
+
+        return lots
+            .Where(lot =>
+            {
+                if (hasSearch)
+                {
+                    var reference = NormalizeText($"{lot.Auctioneer} {lot.Make} {lot.Model} {lot.LotNumber} {lot.ExternalId} {lot.Uf}");
+                    if (!reference.Contains(normalizedSearch, StringComparison.Ordinal))
+                    {
+                        return false;
+                    }
+                }
+
+                if (hasMaxPrice)
+                {
+                    var price = lot.CurrentBid ?? lot.FinalPrice ?? decimal.MaxValue;
+                    if (price > maxPrice!.Value)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            })
+            .ToList();
+    }
+
+    private static string NormalizeText(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        var normalized = value
+            .Normalize(NormalizationForm.FormD)
+            .ToLowerInvariant();
+
+        var buffer = new StringBuilder(normalized.Length);
+        foreach (var ch in normalized)
+        {
+            var category = CharUnicodeInfo.GetUnicodeCategory(ch);
+            if (category == UnicodeCategory.NonSpacingMark)
+            {
+                continue;
+            }
+
+            if (char.IsLetterOrDigit(ch) || char.IsWhiteSpace(ch))
+            {
+                buffer.Append(ch);
+            }
+        }
+
+        return buffer.ToString();
     }
 
     private async Task<IReadOnlyList<LotDto>> BuildLotsAsync(

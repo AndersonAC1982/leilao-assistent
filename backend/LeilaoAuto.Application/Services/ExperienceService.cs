@@ -111,10 +111,14 @@ public sealed class ExperienceService : IExperienceService
         return opportunities;
     }
 
-    public async Task<ScannerRunResponseDto> RunScannerAsync(Guid userId, CancellationToken cancellationToken)
+    public async Task<ScannerRunResponseDto> RunScannerAsync(
+        Guid userId,
+        ScannerRunRequest? request,
+        CancellationToken cancellationToken)
     {
         var user = await GetUserOrThrowAsync(userId, cancellationToken);
         var quota = GetQuota(user.Plan);
+        var normalizedRunRequest = NormalizeScannerRunRequest(request);
         var utcNow = DateTime.UtcNow;
         var dayStartUtc = utcNow.Date;
         var dayEndUtc = dayStartUtc.AddDays(1);
@@ -143,7 +147,20 @@ public sealed class ExperienceService : IExperienceService
 
         try
         {
-            var refreshed = await _lotService.RefreshAsync(cancellationToken);
+            if (normalizedRunRequest is not null)
+            {
+                await PersistScannerSettingsAsync(userId, quota, normalizedRunRequest, cancellationToken);
+            }
+
+            var refreshFilter = BuildScannerLotFilter(normalizedRunRequest);
+            var activeSources = normalizedRunRequest?.ActiveSources;
+            var refreshed = await _lotService.RefreshAsync(
+                refreshFilter,
+                activeSources,
+                normalizedRunRequest?.Search,
+                normalizedRunRequest?.MaxPrice,
+                cancellationToken);
+
             var completedAt = DateTimeOffset.UtcNow;
             stopwatch.Stop();
 
@@ -157,6 +174,12 @@ public sealed class ExperienceService : IExperienceService
                 source = "api/scanner/run",
                 scannerRunsToday = scannerRunsToday + 1,
                 scannerDailyLimit = quota.MaxScannerRunsPerDay,
+                category = normalizedRunRequest?.Category,
+                search = normalizedRunRequest?.Search,
+                minScore = normalizedRunRequest?.MinScore,
+                region = normalizedRunRequest?.Region,
+                maxPrice = normalizedRunRequest?.MaxPrice,
+                activeSources = normalizedRunRequest?.ActiveSources,
                 elapsedMs = stopwatch.ElapsedMilliseconds
             });
 
@@ -186,7 +209,7 @@ public sealed class ExperienceService : IExperienceService
                 completedAt,
                 refreshed,
                 true,
-                $"Varredura concluida com sucesso. {refreshed} lotes atualizados.");
+                BuildScannerSuccessMessage(refreshed, normalizedRunRequest));
         }
         catch (DomainRuleException)
         {
@@ -445,6 +468,153 @@ public sealed class ExperienceService : IExperienceService
         }
 
         return connectors.Any(connector => connector.ValidateLotUrl(lotUrl));
+    }
+
+    private static ScannerRunRequest? NormalizeScannerRunRequest(ScannerRunRequest? request)
+    {
+        if (request is null)
+        {
+            return null;
+        }
+
+        var normalizedSources = request.ActiveSources?
+            .Select(source => source?.Trim() ?? string.Empty)
+            .Where(source => source.Length > 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        var normalizedCategory = string.IsNullOrWhiteSpace(request.Category)
+            ? "Todas"
+            : request.Category.Trim();
+
+        var normalizedRegion = string.IsNullOrWhiteSpace(request.Region)
+            ? null
+            : request.Region.Trim().ToUpperInvariant();
+
+        var normalizedSearch = string.IsNullOrWhiteSpace(request.Search)
+            ? string.Empty
+            : request.Search.Trim();
+
+        var normalizedScore = Math.Clamp(request.MinScore, 0, 100);
+        var normalizedMaxPrice = request.MaxPrice.HasValue && request.MaxPrice.Value > 0
+            ? request.MaxPrice
+            : null;
+
+        int? normalizedVehicleType = null;
+        if (request.VehicleType.HasValue
+            && Enum.IsDefined(typeof(VehicleType), request.VehicleType.Value))
+        {
+            normalizedVehicleType = request.VehicleType.Value;
+        }
+
+        return new ScannerRunRequest
+        {
+            Search = normalizedSearch,
+            Category = normalizedCategory,
+            ActiveSources = normalizedSources,
+            MinScore = normalizedScore,
+            Region = normalizedRegion,
+            MaxPrice = normalizedMaxPrice,
+            VehicleType = normalizedVehicleType
+        };
+    }
+
+    private async Task PersistScannerSettingsAsync(
+        Guid userId,
+        ExtensionPlanQuota quota,
+        ScannerRunRequest request,
+        CancellationToken cancellationToken)
+    {
+        var now = DateTime.UtcNow;
+        var normalizedRegion = string.IsNullOrWhiteSpace(request.Region) ? null : request.Region.Trim().ToUpperInvariant();
+        var normalizedSources = SerializeSources(request.ActiveSources);
+        var normalizedMaxPrice = request.MaxPrice.HasValue && request.MaxPrice.Value > 0
+            ? request.MaxPrice
+            : null;
+        var normalizedCategory = string.IsNullOrWhiteSpace(request.Category) ? "Todas" : request.Category.Trim();
+        var firstSource = request.ActiveSources?.Count == 1 ? request.ActiveSources[0] : string.Empty;
+
+        var existing = await _userSettingsRepository.GetByUserIdAsync(userId, cancellationToken);
+        if (existing is null)
+        {
+            var created = new UserSettings(
+                userId,
+                request.Search,
+                firstSource ?? string.Empty,
+                Math.Clamp(request.MinScore, 0, 100),
+                request.VehicleType,
+                normalizedRegion,
+                advancedFiltersEnabled: quota.AllowsAdvancedFilters,
+                updatedAt: now,
+                category: normalizedCategory,
+                activeSources: normalizedSources,
+                maxPrice: normalizedMaxPrice);
+
+            await _userSettingsRepository.AddAsync(created, cancellationToken);
+            await _userSettingsRepository.SaveChangesAsync(cancellationToken);
+            return;
+        }
+
+        existing.Update(
+            request.Search,
+            firstSource ?? string.Empty,
+            Math.Clamp(request.MinScore, 0, 100),
+            request.VehicleType,
+            normalizedRegion,
+            advancedFiltersEnabled: quota.AllowsAdvancedFilters && existing.AdvancedFiltersEnabled,
+            updatedAt: now,
+            category: normalizedCategory,
+            activeSources: normalizedSources,
+            maxPrice: normalizedMaxPrice);
+
+        _userSettingsRepository.Update(existing);
+        await _userSettingsRepository.SaveChangesAsync(cancellationToken);
+    }
+
+    private static LotSearchFilterRequest BuildScannerLotFilter(ScannerRunRequest? request)
+    {
+        if (request is null)
+        {
+            return new LotSearchFilterRequest();
+        }
+
+        var category = request.Category?.Trim().ToLowerInvariant();
+        VehicleCondition? condition = null;
+        if (category is "sucatas" or "scrap")
+        {
+            condition = VehicleCondition.Scrap;
+        }
+
+        VehicleType? vehicleType = null;
+        if (request.VehicleType.HasValue
+            && Enum.IsDefined(typeof(VehicleType), request.VehicleType.Value))
+        {
+            vehicleType = (VehicleType)request.VehicleType.Value;
+        }
+
+        return new LotSearchFilterRequest
+        {
+            Model = string.IsNullOrWhiteSpace(request.Search) ? null : request.Search.Trim(),
+            Uf = string.IsNullOrWhiteSpace(request.Region) ? null : request.Region.Trim().ToUpperInvariant(),
+            VehicleType = vehicleType,
+            VehicleCondition = condition
+        };
+    }
+
+    private static string BuildScannerSuccessMessage(int refreshed, ScannerRunRequest? request)
+    {
+        if (request is null)
+        {
+            return $"Varredura concluída com sucesso. {refreshed} lotes atualizados.";
+        }
+
+        var sourceCount = request.ActiveSources?.Count ?? 0;
+        if (sourceCount > 0)
+        {
+            return $"Varredura concluída com sucesso. {refreshed} lotes atualizados em {sourceCount} fonte(s).";
+        }
+
+        return $"Varredura concluída com sucesso. {refreshed} lotes atualizados.";
     }
 
     private static ExtensionPlanQuota GetQuota(PlanType plan)

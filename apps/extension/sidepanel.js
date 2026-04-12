@@ -11,7 +11,7 @@ import {
   testApiConnection
 } from "./services/api.js";
 
-const API_HINT = "API indisponivel. Ajuste o endpoint da API e confirme se o backend esta online.";
+const API_HINT = "API indisponível. Ajuste o endpoint da API e confirme se o backend está online.";
 
 const SOURCE_OPTIONS = [
   "Superbid",
@@ -258,6 +258,8 @@ function isValidLotUrl(url) {
 
   try {
     const parsed = new URL(url.trim());
+    const host = parsed.hostname.toLowerCase();
+    const path = parsed.pathname.toLowerCase();
     if (!/^https?:$/i.test(parsed.protocol)) {
       return false;
     }
@@ -266,7 +268,28 @@ function isValidLotUrl(url) {
       return false;
     }
 
-    return parsed.pathname.trim().length > 1;
+    if (path.trim().length <= 1) {
+      return false;
+    }
+
+    if (host.includes("superbid")) {
+      return path.includes("/oferta/") && path !== "/oferta";
+    }
+
+    if (host.includes("sodresantoro")) {
+      return /\/leilao\/\d+\/lote\/\d+/.test(path);
+    }
+
+    if (host.includes("vipleiloes")) {
+      return path.includes("/evento/anuncio/");
+    }
+
+    if (host.includes("megaleiloes")) {
+      const parts = path.split("/").filter(Boolean);
+      return parts.length >= 5 && parts[parts.length - 1].includes("-");
+    }
+
+    return true;
   } catch {
     return false;
   }
@@ -476,7 +499,7 @@ async function initializeApiEndpoint() {
   if (discovery.ok) {
     setApiStatus(`API online em ${discovery.apiBaseUrl}`, "ok");
   } else {
-    setApiStatus("API offline. Clique em 'Testar conexao' ou 'Auto detectar'.", "error");
+    setApiStatus("API offline. Clique em 'Testar conexão' ou 'Autodetectar'.", "error");
     state.scanStatus = "API offline";
   }
 }
@@ -517,7 +540,7 @@ async function ensureApiOnline(forceAutoDetect = true) {
 
   state.api.baseUrl = auto.apiBaseUrl || typedInput;
   state.api.online = false;
-  setApiStatus("Nenhum endpoint valido encontrado. Inicie o backend e tente novamente.", "error");
+  setApiStatus("Nenhum endpoint válido encontrado. Inicie o backend e tente novamente.", "error");
   return false;
 }
 
@@ -593,6 +616,21 @@ function settingsPayload() {
     category: category.label,
     activeSources: state.filters.activeSources,
     maxPrice: state.filters.maxPrice
+  };
+}
+
+function scannerPayload() {
+  const category = getCategoryByKey(state.filters.categoryKey);
+  const query = buildOpportunityQuery();
+
+  return {
+    category: category.label,
+    activeSources: [...state.filters.activeSources],
+    search: state.filters.search,
+    minScore: state.filters.minScore,
+    region: state.filters.region || null,
+    maxPrice: state.filters.maxPrice,
+    vehicleType: query.vehicleType
   };
 }
 
@@ -972,7 +1010,7 @@ refs.testApiButton?.addEventListener("click", async () => {
   await withButtonBusy(refs.testApiButton, "Testando...", async () => {
     const ok = await ensureApiOnline(true);
     if (ok) {
-      setFeedback("Conexao com API validada.", "ok");
+      setFeedback("Conexão com API validada.", "ok");
     } else {
       setFeedback("API offline. Inicie backend ou ajuste endpoint.", "error");
     }
@@ -992,8 +1030,8 @@ refs.detectApiButton?.addEventListener("click", async () => {
     }
 
     state.api.online = false;
-    setApiStatus("Nao foi possivel detectar a API automaticamente.", "error");
-    setFeedback("Nao foi possivel detectar API. Inicie backend ou informe endpoint manual.", "error");
+    setApiStatus("Não foi possível detectar a API automaticamente.", "error");
+    setFeedback("Não foi possível detectar a API. Inicie o backend ou informe o endpoint manual.", "error");
   });
 });
 
@@ -1004,7 +1042,7 @@ refs.loginForm.addEventListener("submit", async (event) => {
   await withButtonBusy(submitButton, "Entrando...", async () => {
     const apiReady = await ensureApiOnline(true);
     if (!apiReady) {
-      setFeedback("API offline. Sem conexao nao e possivel autenticar.", "error");
+      setFeedback("API offline. Sem conexão não é possível autenticar.", "error");
       return;
     }
 
@@ -1032,7 +1070,7 @@ refs.loginForm.addEventListener("submit", async (event) => {
       setFeedback("Login realizado com sucesso.", "ok");
     } catch (error) {
       if (error?.status === 401) {
-        setFeedback("Credenciais invalidas.", "error");
+        setFeedback("Credenciais inválidas.", "error");
         return;
       }
 
@@ -1059,13 +1097,13 @@ refs.logoutButton.addEventListener("click", async () => {
 refs.useDomainButton.addEventListener("click", async () => {
   await withButtonBusy(refs.useDomainButton, "Aplicando...", async () => {
     if (!state.tabContext?.domain) {
-      setFeedback("Dominio atual nao identificado.", "error");
+      setFeedback("Domínio atual não identificado.", "error");
       return;
     }
 
     const matchedSource = findSourceByDomain(state.tabContext.domain);
     if (!matchedSource) {
-      setFeedback("Dominio sem fonte mapeada.", "error");
+      setFeedback("Domínio sem fonte mapeada.", "error");
       return;
     }
 
@@ -1080,7 +1118,7 @@ refs.useDomainButton.addEventListener("click", async () => {
 refs.applyFiltersButton.addEventListener("click", async () => {
   await withButtonBusy(refs.applyFiltersButton, "Aplicando...", async () => {
     if (!state.token) {
-      setFeedback("Faca login para aplicar filtros.", "error");
+      setFeedback("Faça login para aplicar filtros.", "error");
       return;
     }
 
@@ -1105,13 +1143,13 @@ refs.applyFiltersButton.addEventListener("click", async () => {
 refs.saveSettingsButton.addEventListener("click", async () => {
   await withButtonBusy(refs.saveSettingsButton, "Salvando...", async () => {
     if (!state.token) {
-      setFeedback("Faca login para salvar preferencias.", "error");
+      setFeedback("Faça login para salvar preferências.", "error");
       return;
     }
 
     const apiReady = await ensureApiOnline(false);
     if (!apiReady) {
-      setFeedback("API offline. Nao foi possivel salvar preferencias.", "error");
+      setFeedback("API offline. Não foi possível salvar preferências.", "error");
       return;
     }
 
@@ -1130,7 +1168,7 @@ refs.saveSettingsButton.addEventListener("click", async () => {
       renderFilters();
       renderStatus();
       await setItem(STORAGE_KEYS.filters, state.filters);
-      setFeedback("Preferencias salvas no servidor.", "ok");
+      setFeedback("Preferências salvas no servidor.", "ok");
     } catch (error) {
       if (error?.status === 401) {
         await handleSessionExpired();
@@ -1145,13 +1183,13 @@ refs.saveSettingsButton.addEventListener("click", async () => {
 refs.runNowButton.addEventListener("click", async () => {
   await withButtonBusy(refs.runNowButton, "Rodando...", async () => {
     if (!state.token) {
-      setFeedback("Faca login para rodar o scanner.", "error");
+      setFeedback("Faça login para rodar o scanner.", "error");
       return;
     }
 
     const apiReady = await ensureApiOnline(false);
     if (!apiReady) {
-      setFeedback("API offline. Nao foi possivel rodar scanner.", "error");
+      setFeedback("API offline. Não foi possível rodar o scanner.", "error");
       return;
     }
 
@@ -1162,19 +1200,21 @@ refs.runNowButton.addEventListener("click", async () => {
       return;
     }
 
+    await setItem(STORAGE_KEYS.filters, state.filters);
+
     state.scanStatus = "Executando varredura";
     renderStatus();
     setFeedback("Executando varredura...", "ok");
 
     try {
-      const result = await runScanner(state.token);
+      const result = await runScanner(state.token, scannerPayload());
       state.scanStatus = result.success
-        ? `Concluida as ${new Date(result.completedAtUtc).toLocaleTimeString("pt-BR")}`
+        ? `Concluída às ${new Date(result.completedAtUtc).toLocaleTimeString("pt-BR")}`
         : "Falhou";
 
       renderStatus();
       await refreshData();
-      setFeedback(result.message || `Varredura concluida: ${result.refreshedLots || 0} lotes atualizados.`, "ok");
+      setFeedback(result.message || `Varredura concluída: ${result.refreshedLots || 0} lotes atualizados.`, "ok");
     } catch (error) {
       if (error?.status === 401) {
         await handleSessionExpired();
@@ -1189,3 +1229,5 @@ refs.runNowButton.addEventListener("click", async () => {
 });
 
 bootstrap();
+
+

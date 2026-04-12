@@ -1,8 +1,8 @@
 ﻿:root {
   color-scheme: dark;
   --bg: #0f131c;
-  --section: #141a25;
-  --line: #2b3344;
+  --section: #121825;
+  --line: #273043;
   --text: #e7ecf6;
   --muted: #97a3bb;
   --primary: #3b82f6;
@@ -25,16 +25,16 @@ body {
 .panel {
   max-width: 430px;
   margin: 0 auto;
-  padding: 8px;
+  padding: 6px;
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 .section {
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: 4px;
   background: var(--section);
-  padding: 9px;
+  padding: 8px;
 }
 
 .section-header {
@@ -69,8 +69,8 @@ h1 {
 }
 
 h2 {
-  font-size: 13px;
-  margin-bottom: 7px;
+  font-size: 12.5px;
+  margin-bottom: 6px;
 }
 
 h3 {
@@ -97,7 +97,7 @@ input,
 select {
   width: 100%;
   border: 1px solid var(--line);
-  border-radius: 5px;
+  border-radius: 4px;
   background: #111724;
   color: var(--text);
   padding: 7px 8px;
@@ -116,8 +116,8 @@ input::placeholder {
 
 .source-item {
   border: 1px solid var(--line);
-  border-radius: 5px;
-  background: #111723;
+  border-radius: 4px;
+  background: #0f1521;
   padding: 6px;
   display: flex;
   align-items: center;
@@ -138,8 +138,8 @@ input::placeholder {
 
 .btn {
   border: 0;
-  border-radius: 5px;
-  padding: 8px 9px;
+  border-radius: 4px;
+  padding: 7px 8px;
   font: 600 12px "Segoe UI", system-ui, sans-serif;
   cursor: pointer;
 }
@@ -190,8 +190,8 @@ input::placeholder {
 
 .count {
   min-width: 26px;
-  height: 20px;
-  border-radius: 4px;
+  height: 18px;
+  border-radius: 3px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -214,8 +214,8 @@ input::placeholder {
 
 .status-chip {
   border: 1px solid var(--line);
-  border-radius: 5px;
-  background: #111723;
+  border-radius: 4px;
+  background: #0f1521;
   padding: 6px;
   display: grid;
   gap: 2px;
@@ -233,14 +233,14 @@ input::placeholder {
 .list {
   display: grid;
   gap: 7px;
-  max-height: 270px;
+  max-height: 240px;
   overflow: auto;
 }
 
 .item {
   border: 1px solid var(--line);
-  border-radius: 5px;
-  background: #111723;
+  border-radius: 4px;
+  background: #0f1521;
   padding: 7px;
   display: grid;
   gap: 5px;
