@@ -1,0 +1,6 @@
+{
+  "environmentName": "prod",
+  "apiBaseCandidates": [
+    "https://api.multileilao.com/api"
+  ]
+}

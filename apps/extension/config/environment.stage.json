@@ -1,0 +1,6 @@
+{
+  "environmentName": "stage",
+  "apiBaseCandidates": [
+    "https://api-stage.multileilao.com/api"
+  ]
+}

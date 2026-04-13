@@ -1,18 +1,22 @@
 ﻿import { getItem, setItem, STORAGE_KEYS } from './storage.js';
 
-const API_BASE_CANDIDATES = [
-  'http://localhost:8080/api',
-  'http://127.0.0.1:8080/api',
-  'http://localhost:5198/api',
-  'http://127.0.0.1:5198/api',
-  'http://localhost:5000/api',
-  'http://127.0.0.1:5000/api'
-];
+const DEFAULT_EXTENSION_ENV = {
+  environmentName: 'dev',
+  apiBaseCandidates: [
+    'http://localhost:8080/api',
+    'http://127.0.0.1:8080/api',
+    'http://localhost:5198/api',
+    'http://127.0.0.1:5198/api',
+    'http://localhost:5000/api',
+    'http://127.0.0.1:5000/api'
+  ]
+};
 
 const REQUEST_TIMEOUT_MS = 4000;
 const HEALTH_TIMEOUT_MS = 1800;
 
 let cachedApiBaseUrl = null;
+let cachedExtensionEnv = null;
 
 function normalizeApiBaseUrl(input) {
   if (!input || typeof input !== 'string') {
@@ -40,6 +44,46 @@ function normalizeApiBaseUrl(input) {
   }
 
   return `${parsed.protocol}//${parsed.host}${path}`;
+}
+
+function normalizeEnvConfig(config) {
+  if (!config || typeof config !== 'object') {
+    return { ...DEFAULT_EXTENSION_ENV };
+  }
+
+  const apiBaseCandidates = Array.isArray(config.apiBaseCandidates)
+    ? config.apiBaseCandidates
+        .map((candidate) => normalizeApiBaseUrl(candidate))
+        .filter(Boolean)
+    : [];
+
+  return {
+    environmentName: String(config.environmentName || DEFAULT_EXTENSION_ENV.environmentName).trim() || 'dev',
+    apiBaseCandidates: apiBaseCandidates.length > 0
+      ? apiBaseCandidates
+      : [...DEFAULT_EXTENSION_ENV.apiBaseCandidates]
+  };
+}
+
+async function getExtensionEnv() {
+  if (cachedExtensionEnv) {
+    return cachedExtensionEnv;
+  }
+
+  try {
+    const response = await fetch(chrome.runtime.getURL('config/environment.json'), { cache: 'no-store' });
+    if (!response.ok) {
+      cachedExtensionEnv = { ...DEFAULT_EXTENSION_ENV };
+      return cachedExtensionEnv;
+    }
+
+    const payload = await response.json();
+    cachedExtensionEnv = normalizeEnvConfig(payload);
+    return cachedExtensionEnv;
+  } catch {
+    cachedExtensionEnv = { ...DEFAULT_EXTENSION_ENV };
+    return cachedExtensionEnv;
+  }
 }
 
 function toHealthUrl(apiBaseUrl) {
@@ -128,8 +172,9 @@ export async function discoverApiBaseUrl(force = false) {
     }
   }
 
+  const extensionEnv = await getExtensionEnv();
   const configured = await getConfiguredApiBaseUrl();
-  const candidates = uniqueCandidates([configured, ...API_BASE_CANDIDATES]);
+  const candidates = uniqueCandidates([configured, ...extensionEnv.apiBaseCandidates]);
 
   for (const candidate of candidates) {
     const healthy = await pingApi(candidate);
@@ -146,7 +191,7 @@ export async function discoverApiBaseUrl(force = false) {
     };
   }
 
-  const fallback = configured || normalizeApiBaseUrl(API_BASE_CANDIDATES[0]);
+  const fallback = configured || normalizeApiBaseUrl(extensionEnv.apiBaseCandidates[0]);
   if (fallback) {
     cachedApiBaseUrl = fallback;
   }
@@ -229,8 +274,9 @@ export async function request(path, options = {}) {
     return executeHttpRequest(normalizedBaseUrl, path, options);
   }
 
+  const extensionEnv = await getExtensionEnv();
   const discovered = await discoverApiBaseUrl(false);
-  const firstBaseUrl = discovered.apiBaseUrl || normalizeApiBaseUrl(API_BASE_CANDIDATES[0]);
+  const firstBaseUrl = discovered.apiBaseUrl || normalizeApiBaseUrl(extensionEnv.apiBaseCandidates[0]);
 
   if (!firstBaseUrl) {
     throw buildUnreachableError('unknown', 'api_base_not_configured');

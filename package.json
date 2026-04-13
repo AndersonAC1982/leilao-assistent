@@ -10,6 +10,15 @@
     "web:start": "npm --prefix apps/web start",
     "web:build": "npm --prefix apps/web run build",
     "backend:build": "dotnet build backend/LeilaoAuto.sln",
-    "backend:test": "dotnet test backend/LeilaoAuto.Tests/LeilaoAuto.Tests.csproj"
+    "backend:test": "dotnet test backend/LeilaoAuto.Tests/LeilaoAuto.Tests.csproj",
+    "local:up": "docker compose up -d postgres api worker",
+    "local:up:frontend": "docker compose --profile frontend up -d --build",
+    "local:down": "docker compose down",
+    "local:logs": "docker compose logs -f api worker postgres",
+    "local:api": "dotnet run --project backend/LeilaoAuto.Api --urls http://localhost:8080",
+    "local:worker": "dotnet run --project backend/LeilaoAuto.Workers",
+    "extension:env:dev": "node apps/extension/scripts/set-env.mjs dev",
+    "extension:env:stage": "node apps/extension/scripts/set-env.mjs stage",
+    "extension:env:prod": "node apps/extension/scripts/set-env.mjs prod"
   }
 }

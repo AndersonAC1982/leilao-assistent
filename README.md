@@ -134,6 +134,7 @@ npm --prefix apps/web run build
 ## Diagnostico MVP extensao
 
 - detalhes tecnicos: `docs/MVP_EXTENSAO_DIAGNOSTICO.md`
+- preparo para uso real: `docs/EXTENSAO_PREPARACAO_USO_REAL.md`
 
 ## Fortalecimento comercial e tecnico (fase atual)
 
