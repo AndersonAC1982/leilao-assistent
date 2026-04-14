@@ -1,4 +1,4 @@
-<!doctype html>
+Ôªø<!doctype html>
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
@@ -25,16 +25,16 @@
           <label for="password-input">Senha</label>
           <input id="password-input" type="password" placeholder="Sua senha" autocomplete="current-password" required />
 
-          <p id="api-status" class="muted">Conex„o: verificando...</p>
+          <p id="api-status" class="muted">Conex√£o: verificando...</p>
 
           <details id="api-advanced-box" class="advanced-box">
-            <summary>Ajustes de conex„o (avanÁado)</summary>
+            <summary>Ajustes de conex√£o (avan√ßado)</summary>
 
             <label for="api-base-input">Endpoint da API</label>
             <input id="api-base-input" type="text" placeholder="http://localhost:8080/api" autocomplete="off" />
 
             <div class="row-actions two-actions">
-              <button id="test-api-button" class="btn btn-ghost" type="button">Testar conex„o</button>
+              <button id="test-api-button" class="btn btn-ghost" type="button">Testar conex√£o</button>
               <button id="detect-api-button" class="btn btn-ghost" type="button">Autodetectar</button>
             </div>
           </details>
@@ -49,13 +49,12 @@
       </section>
 
       <section class="section">
-        <h2>Busca r·pida</h2>
+        <h2>Busca r√°pida</h2>
         <div class="form-grid">
-          <label for="category-input">Tipo de leil„o</label>
+          <label for="category-input">Tipo de leil√£o</label>
           <select id="category-input">
             <option value="all">Todos</option>
-            <option value="vehicles">VeÌculos</option>
-            <option value="real_estate">ImÛveis</option>
+            <option value="vehicles">Ve√≠culos</option>
           </select>
 
           <label for="region-scope-input">Onde buscar</label>
@@ -64,47 +63,49 @@
             <option value="SP">SP</option>
           </select>
 
-          <label for="search-input">O que vocÍ procura?</label>
+          <label for="search-input">O que voc√™ procura?</label>
           <input id="search-input" type="text" placeholder="Ex: apartamento, carro, lote de estoque" />
 
           <button id="run-now-button" class="btn btn-primary" type="button">Buscar oportunidades</button>
           <button id="toggle-advanced-button" class="btn btn-ghost" type="button" aria-expanded="false">
-            Modo avanÁado
+            Modo avan√ßado
           </button>
+
+          <p id="coverage-hint" class="muted coverage-hint"></p>
 
           <div id="advanced-filters-panel" class="advanced-panel hidden">
             <label for="advanced-category-input">Categoria detalhada</label>
             <select id="advanced-category-input">
-              <option value="all">Todas</option>
-              <option value="vehicles">VeÌculos</option>
-              <option value="real_estate">ImÛveis</option>
-              <option value="machines">M·quinas e Equipamentos</option>
-              <option value="materials">Materiais / Estoque</option>
-              <option value="scrap">Sucatas</option>
-              <option value="judicial">Judicial</option>
-              <option value="extrajudicial">Extrajudicial</option>
-              <option value="misc">Diversos</option>
+              <option value="all">Todos</option>
+              <option value="vehicles">Ve√≠culos</option>
+              <option value="real_estate">Im√≥veis (cobertura parcial)</option>
+              <option value="machines">M√°quinas e Equipamentos (cobertura parcial)</option>
+              <option value="materials">Materiais / Estoque (cobertura parcial)</option>
+              <option value="scrap">Sucatas (cobertura parcial)</option>
+              <option value="judicial">Judicial (cobertura parcial)</option>
+              <option value="extrajudicial">Extrajudicial (cobertura parcial)</option>
+              <option value="misc">Diversos (cobertura parcial)</option>
             </select>
 
-            <label>Sites de leil„o</label>
+            <label>Sites de leil√£o</label>
             <div id="sources-list" class="source-list"></div>
 
-            <label for="score-input">Score mÌnimo</label>
+            <label for="score-input">Score m√≠nimo</label>
             <input id="score-input" type="number" min="0" max="100" value="20" />
 
-            <label for="max-price-input">Faixa de preÁo m·xima (opcional)</label>
+            <label for="max-price-input">Faixa de pre√ßo m√°xima (opcional)</label>
             <input id="max-price-input" type="number" min="0" step="0.01" placeholder="Ex: 80000" />
 
-            <label for="region-advanced-input">Regi„o / UF detalhada (opcional)</label>
+            <label for="region-advanced-input">Regi√£o / UF detalhada (opcional)</label>
             <input id="region-advanced-input" type="text" maxlength="10" placeholder="Ex: RJ, MG, DF" />
 
             <label>Contexto da aba</label>
             <p id="tab-context" class="muted">Sem contexto da aba.</p>
-            <button id="use-domain-button" class="btn btn-ghost" type="button">Usar domÌnio atual como fonte</button>
+            <button id="use-domain-button" class="btn btn-ghost" type="button">Usar dom√≠nio atual como fonte</button>
 
             <div class="row-actions two-actions">
               <button id="apply-filters-button" class="btn btn-primary" type="button">Aplicar</button>
-              <button id="save-settings-button" class="btn btn-ghost" type="button">Salvar preferÍncias</button>
+              <button id="save-settings-button" class="btn btn-ghost" type="button">Salvar prefer√™ncias</button>
             </div>
           </div>
         </div>
@@ -124,7 +125,7 @@
       </section>
 
       <section class="section">
-        <h2>HistÛrico</h2>
+        <h2>Hist√≥rico</h2>
         <div id="history-list" class="list"></div>
       </section>
 

@@ -35,8 +35,19 @@ const SOURCE_API_NAMES = {
   milan: "Milan Leiloes"
 };
 
+const SOURCE_CAPABILITIES = {
+  "Superbid": { real: true, vehicles: true, realEstate: false },
+  "Sodré Santoro": { real: true, vehicles: true, realEstate: false },
+  "VIP Leilões": { real: true, vehicles: true, realEstate: false },
+  "Mega": { real: true, vehicles: true, realEstate: false, advancedPlanOnly: true },
+  "Freitas": { real: false, vehicles: true, realEstate: false },
+  "Zukerman": { real: false, vehicles: false, realEstate: true },
+  "Pacto": { real: false, vehicles: true, realEstate: false },
+  "Milan": { real: false, vehicles: true, realEstate: false }
+};
+
 const CATEGORIES = [
-  { key: "all", label: "Todas", searchHint: "", vehicleType: null },
+  { key: "all", label: "Todos", searchHint: "", vehicleType: null },
   { key: "vehicles", label: "Veículos", searchHint: "", vehicleType: null },
   { key: "real_estate", label: "Imóveis", searchHint: "imovel", vehicleType: null },
   { key: "machines", label: "Máquinas e Equipamentos", searchHint: "maquina equipamento", vehicleType: null },
@@ -89,6 +100,7 @@ const refs = {
   runNowButton: document.getElementById("run-now-button"),
   toggleAdvancedButton: document.getElementById("toggle-advanced-button"),
   advancedFiltersPanel: document.getElementById("advanced-filters-panel"),
+  coverageHint: document.getElementById("coverage-hint"),
 
   categoryInput: document.getElementById("category-input"),
   advancedCategoryInput: document.getElementById("advanced-category-input"),
@@ -232,10 +244,6 @@ function toSimpleCategory(categoryKey) {
     return "vehicles";
   }
 
-  if (categoryKey === "real_estate") {
-    return "real_estate";
-  }
-
   return "all";
 }
 
@@ -251,6 +259,71 @@ function selectedCategoryKeyFromForm() {
   }
 
   return advancedCategory;
+}
+
+function allowsAdvancedSourcesForCurrentPlan() {
+  return Number(state.me?.plan || 0) === 4;
+}
+
+function connectorSupportsCategory(sourceName, categoryKey) {
+  const capability = SOURCE_CAPABILITIES[sourceName];
+  if (!capability) {
+    return categoryKey === "all";
+  }
+
+  if (capability.advancedPlanOnly && !allowsAdvancedSourcesForCurrentPlan()) {
+    return false;
+  }
+
+  if (categoryKey === "all") {
+    return true;
+  }
+
+  if (categoryKey === "vehicles") {
+    return capability.vehicles;
+  }
+
+  if (categoryKey === "real_estate") {
+    return capability.realEstate;
+  }
+
+  return false;
+}
+
+function getCategoryCoverage(categoryKey) {
+  const category = getCategoryByKey(categoryKey);
+  const activeSources = state.filters.activeSources;
+
+  const supportedSources = activeSources.filter((source) => connectorSupportsCategory(source, category.key));
+  const supportedRealSources = supportedSources.filter((source) => SOURCE_CAPABILITIES[source]?.real);
+
+  return {
+    category,
+    activeSources,
+    supportedSources,
+    supportedRealSources
+  };
+}
+
+function renderCoverageHint() {
+  if (!refs.coverageHint) {
+    return;
+  }
+
+  const coverage = getCategoryCoverage(state.filters.categoryKey);
+  const base = `${coverage.supportedRealSources.length} fonte(s) reais ativas para "${coverage.category.label}".`;
+
+  if (coverage.supportedRealSources.length > 0) {
+    refs.coverageHint.textContent = `${base} ${coverage.supportedRealSources.join(", ")}.`;
+    return;
+  }
+
+  if (coverage.supportedSources.length > 0) {
+    refs.coverageHint.textContent = `${base} Cobertura parcial nas fontes selecionadas.`;
+    return;
+  }
+
+  refs.coverageHint.textContent = `${base} Esta categoria não está coberta pelas fontes selecionadas.`;
 }
 
 function mergeSearch(baseSearch, categoryHint) {
@@ -637,9 +710,13 @@ function readFiltersFromForm() {
   const advancedRegion = refs.regionAdvancedInput.value.trim().toUpperCase().slice(0, 10);
   const regionByScope = refs.regionScopeInput.value === "SP" ? "SP" : "";
 
+  const normalizedSources = normalizeSources(selectedSources);
+
   state.filters = {
     categoryKey: selectedCategoryKeyFromForm(),
-    activeSources: normalizeSources(selectedSources),
+    activeSources: normalizedSources.length > 0
+      ? normalizedSources
+      : (state.ui.advancedMode ? [] : [...SOURCE_OPTIONS]),
     search: refs.searchInput.value.trim(),
     minScore: clampScore(refs.scoreInput.value),
     region: advancedRegion || regionByScope,
@@ -800,13 +877,42 @@ function renderStatus() {
   ]
     .map(([label, value]) => `<div class="status-chip"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`)
     .join("");
+
+  renderCoverageHint();
+}
+
+function buildEmptyStateMessage() {
+  const coverage = getCategoryCoverage(state.filters.categoryKey);
+  const hints = ["Nenhuma oportunidade encontrada para esta combinação de filtros."];
+
+  if (state.filters.categoryKey !== "all") {
+    hints.push("Tente buscar em \"Todos\" para ampliar a varredura.");
+  }
+
+  if (state.filters.search) {
+    hints.push("Tente remover ou simplificar o termo em \"O que você procura?\".");
+  }
+
+  if (state.filters.maxPrice !== null) {
+    hints.push("Aumente ou remova a faixa de preço máxima.");
+  }
+
+  if (coverage.supportedRealSources.length === 0) {
+    hints.push("A categoria escolhida pode ter cobertura parcial nas fontes ativas.");
+  }
+
+  return `
+    <div class="empty-state">
+      ${hints.map((hint) => `<p class="muted">${escapeHtml(hint)}</p>`).join("")}
+    </div>
+  `;
 }
 
 function renderOpportunities() {
   refs.opportunitiesCount.textContent = String(state.opportunities.length);
 
   if (!state.opportunities.length) {
-    refs.opportunitiesList.innerHTML = '<p class="muted">Nenhuma oportunidade encontrada para os filtros atuais.</p>';
+    refs.opportunitiesList.innerHTML = buildEmptyStateMessage();
     return;
   }
 
