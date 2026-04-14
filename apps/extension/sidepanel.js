@@ -76,7 +76,10 @@ const state = {
   scanStatus: "Aguardando login",
   filters: { ...DEFAULT_FILTERS },
   ui: {
-    advancedMode: false
+    advancedMode: false,
+    advancedCategoryManualOverride: false,
+    lastExecutionCategoryKey: "all",
+    lastExecutionRealSources: 0
   },
   api: {
     baseUrl: "",
@@ -101,6 +104,9 @@ const refs = {
   toggleAdvancedButton: document.getElementById("toggle-advanced-button"),
   advancedFiltersPanel: document.getElementById("advanced-filters-panel"),
   coverageHint: document.getElementById("coverage-hint"),
+  coverageWarning: document.getElementById("coverage-warning"),
+  coverageWarningText: document.getElementById("coverage-warning-text"),
+  coverageFixButton: document.getElementById("coverage-fix-button"),
 
   categoryInput: document.getElementById("category-input"),
   advancedCategoryInput: document.getElementById("advanced-category-input"),
@@ -248,17 +254,21 @@ function toSimpleCategory(categoryKey) {
 }
 
 function selectedCategoryKeyFromForm() {
+  // Regra única de prioridade:
+  // - modo simples sempre manda por padrão;
+  // - modo avançado só sobrescreve após edição manual explícita no campo detalhado.
   const simpleCategory = toSimpleCategory(refs.categoryInput.value);
-  if (!state.ui.advancedMode) {
+  if (!state.ui.advancedMode || !state.ui.advancedCategoryManualOverride) {
     return simpleCategory;
   }
 
-  const advancedCategory = getCategoryByKey(refs.advancedCategoryInput.value).key;
-  if (advancedCategory === "all" && simpleCategory !== "all") {
-    return simpleCategory;
-  }
+  return getCategoryByKey(refs.advancedCategoryInput.value).key;
+}
 
-  return advancedCategory;
+function syncAdvancedCategoryWithSimple() {
+  const simpleCategory = toSimpleCategory(refs.categoryInput.value);
+  refs.advancedCategoryInput.value = simpleCategory;
+  state.ui.advancedCategoryManualOverride = false;
 }
 
 function allowsAdvancedSourcesForCurrentPlan() {
@@ -305,25 +315,78 @@ function getCategoryCoverage(categoryKey) {
   };
 }
 
+function getBestCoveredCategoryKey() {
+  const candidates = ["vehicles", "all"];
+  const byCoverage = candidates
+    .map((candidate) => ({
+      candidate,
+      count: getCategoryCoverage(candidate).supportedRealSources.length
+    }))
+    .sort((left, right) => right.count - left.count);
+
+  return byCoverage[0]?.candidate || "all";
+}
+
 function renderCoverageHint() {
   if (!refs.coverageHint) {
     return;
   }
 
   const coverage = getCategoryCoverage(state.filters.categoryKey);
-  const base = `${coverage.supportedRealSources.length} fonte(s) reais ativas para "${coverage.category.label}".`;
+  const header = `Sua busca atual está usando a categoria "${coverage.category.label}".`;
+  const base = `${coverage.supportedRealSources.length} fonte(s) reais compatíveis.`;
 
   if (coverage.supportedRealSources.length > 0) {
-    refs.coverageHint.textContent = `${base} ${coverage.supportedRealSources.join(", ")}.`;
+    refs.coverageHint.textContent = `${header} ${base} ${coverage.supportedRealSources.join(", ")}.`;
+    refs.coverageWarning?.classList.add("hidden");
+    if (refs.coverageFixButton) {
+      refs.coverageFixButton.disabled = false;
+    }
     return;
   }
 
-  if (coverage.supportedSources.length > 0) {
-    refs.coverageHint.textContent = `${base} Cobertura parcial nas fontes selecionadas.`;
+  refs.coverageHint.textContent = `${header} ${base}`;
+  if (!refs.coverageWarning || !refs.coverageWarningText) {
     return;
   }
 
-  refs.coverageHint.textContent = `${base} Esta categoria não está coberta pelas fontes selecionadas.`;
+  const fallbackCategory = getCategoryByKey(getBestCoveredCategoryKey()).label;
+  refs.coverageWarningText.textContent = `${coverage.category.label} ainda não possui cobertura real suficiente nas fontes ativas. Tente ${fallbackCategory} ou Todos.`;
+  refs.coverageWarning.classList.remove("hidden");
+  if (refs.coverageFixButton) {
+    refs.coverageFixButton.textContent = `Usar ${fallbackCategory}`;
+    refs.coverageFixButton.disabled = !state.token;
+  }
+}
+
+function canRunSearchNow() {
+  if (!state.token) {
+    return false;
+  }
+
+  const coverage = getCategoryCoverage(state.filters.categoryKey);
+  return coverage.supportedRealSources.length > 0;
+}
+
+function updateRunButtonState() {
+  if (!refs.runNowButton) {
+    return;
+  }
+
+  if (!state.token) {
+    refs.runNowButton.disabled = true;
+    refs.runNowButton.removeAttribute("title");
+    return;
+  }
+
+  const coverage = getCategoryCoverage(state.filters.categoryKey);
+  const blocked = coverage.supportedRealSources.length === 0;
+  refs.runNowButton.disabled = blocked;
+  if (blocked) {
+    refs.runNowButton.title = "Sem cobertura real para a categoria atual nas fontes ativas.";
+  } else {
+    refs.runNowButton.removeAttribute("title");
+  }
 }
 
 function mergeSearch(baseSearch, categoryHint) {
@@ -689,8 +752,16 @@ function renderSources() {
 }
 
 function renderFilters() {
-  refs.categoryInput.value = toSimpleCategory(state.filters.categoryKey);
-  refs.advancedCategoryInput.value = state.filters.categoryKey;
+  const simpleCategory = toSimpleCategory(state.filters.categoryKey);
+  refs.categoryInput.value = simpleCategory;
+
+  if (!state.ui.advancedCategoryManualOverride) {
+    refs.advancedCategoryInput.value = simpleCategory;
+    state.filters.categoryKey = simpleCategory;
+  } else {
+    refs.advancedCategoryInput.value = state.filters.categoryKey;
+  }
+
   refs.searchInput.value = state.filters.search;
   refs.scoreInput.value = String(state.filters.minScore);
   refs.regionScopeInput.value = state.filters.region === "SP" ? "SP" : "BR";
@@ -700,6 +771,7 @@ function renderFilters() {
   refs.maxPriceInput.value = state.filters.maxPrice === null ? "" : String(state.filters.maxPrice);
   renderSources();
   renderAdvancedMode();
+  updateRunButtonState();
 }
 
 function readFiltersFromForm() {
@@ -800,7 +872,6 @@ function renderAuth() {
   refs.loginForm.classList.toggle("hidden", authenticated);
   refs.sessionView.classList.toggle("hidden", !authenticated);
 
-  refs.runNowButton.disabled = !authenticated;
   refs.toggleAdvancedButton.disabled = !authenticated;
   refs.categoryInput.disabled = !authenticated;
   refs.advancedCategoryInput.disabled = !authenticated;
@@ -820,6 +891,8 @@ function renderAuth() {
   refs.sessionEmail.textContent = authenticated && state.me
     ? `${state.me.email} | Plano ${planLabel(state.me.plan)}`
     : "";
+
+  updateRunButtonState();
 }
 
 function findSourceByDomain(domain) {
@@ -865,12 +938,13 @@ function renderStatus() {
     : 0;
 
   const strongCount = state.opportunities.filter((item) => Number(item.score || 0) >= 75).length;
-  const categoryLabel = getCategoryByKey(state.filters.categoryKey).label;
+  const coverage = getCategoryCoverage(state.filters.categoryKey);
+  const categoryLabel = coverage.category.label;
 
   refs.scanStatusText.textContent = state.scanStatus;
   refs.statusGrid.innerHTML = [
-    ["Tipo", categoryLabel],
-    ["Sites ativos", String(state.filters.activeSources.length)],
+    ["Categoria usada", categoryLabel],
+    ["Fontes reais compatíveis", String(coverage.supportedRealSources.length)],
     ["Lotes encontrados", String(state.opportunities.length)],
     ["Maior score", maxScore.toFixed(1)],
     ["Oportunidades fortes", String(strongCount)]
@@ -879,11 +953,15 @@ function renderStatus() {
     .join("");
 
   renderCoverageHint();
+  updateRunButtonState();
 }
 
 function buildEmptyStateMessage() {
   const coverage = getCategoryCoverage(state.filters.categoryKey);
-  const hints = ["Nenhuma oportunidade encontrada para esta combinação de filtros."];
+  const hints = [
+    "Nenhuma oportunidade encontrada para esta combinação de filtros.",
+    `Sua busca atual está usando a categoria "${coverage.category.label}".`
+  ];
 
   if (state.filters.categoryKey !== "all") {
     hints.push("Tente buscar em \"Todos\" para ampliar a varredura.");
@@ -898,7 +976,7 @@ function buildEmptyStateMessage() {
   }
 
   if (coverage.supportedRealSources.length === 0) {
-    hints.push("A categoria escolhida pode ter cobertura parcial nas fontes ativas.");
+    hints.push(`${coverage.category.label} ainda não possui cobertura real suficiente nas fontes ativas.`);
   }
 
   return `
@@ -1042,6 +1120,7 @@ async function handleSessionExpired(message = "Sessão expirada. Faça login nov
   await logout();
   state.token = null;
   state.me = null;
+  state.ui.advancedCategoryManualOverride = false;
   state.opportunities = [];
   state.history = await getItem(STORAGE_KEYS.history, []);
   state.scanStatus = "Aguardando login";
@@ -1109,6 +1188,7 @@ async function refreshData() {
 
 async function bootstrap() {
   state.token = await getToken();
+  state.ui.advancedCategoryManualOverride = false;
 
   const rawStoredFilters = await getItem(STORAGE_KEYS.filters, DEFAULT_FILTERS);
   const hadStoredSources = Array.isArray(rawStoredFilters?.activeSources);
@@ -1176,12 +1256,47 @@ async function bootstrap() {
   }
 }
 
+refs.categoryInput?.addEventListener("change", async () => {
+  syncAdvancedCategoryWithSimple();
+  readFiltersFromForm();
+  renderStatus();
+  await setItem(STORAGE_KEYS.filters, state.filters);
+});
+
+refs.advancedCategoryInput?.addEventListener("change", async () => {
+  const simpleCategory = toSimpleCategory(refs.categoryInput.value);
+  state.ui.advancedCategoryManualOverride = state.ui.advancedMode
+    && refs.advancedCategoryInput.value !== simpleCategory;
+
+  if (!state.ui.advancedCategoryManualOverride) {
+    refs.advancedCategoryInput.value = simpleCategory;
+  }
+
+  readFiltersFromForm();
+  renderStatus();
+  await setItem(STORAGE_KEYS.filters, state.filters);
+
+  if (state.ui.advancedCategoryManualOverride) {
+    setFeedback(`Modo avançado ativo: a busca usará "${getCategoryByKey(state.filters.categoryKey).label}".`, "ok");
+  }
+});
+
+refs.coverageFixButton?.addEventListener("click", async () => {
+  const fallbackCategory = getBestCoveredCategoryKey();
+  refs.categoryInput.value = toSimpleCategory(fallbackCategory);
+  syncAdvancedCategoryWithSimple();
+  readFiltersFromForm();
+  renderStatus();
+  await setItem(STORAGE_KEYS.filters, state.filters);
+  setFeedback(`Categoria ajustada para "${getCategoryByKey(state.filters.categoryKey).label}" para melhorar cobertura.`, "ok");
+});
+
 refs.toggleAdvancedButton?.addEventListener("click", async () => {
   state.ui.advancedMode = !state.ui.advancedMode;
 
   if (!state.ui.advancedMode) {
     refs.regionAdvancedInput.value = "";
-    refs.advancedCategoryInput.value = toSimpleCategory(refs.categoryInput.value);
+    syncAdvancedCategoryWithSimple();
   }
 
   renderAdvancedMode();
@@ -1269,6 +1384,7 @@ refs.logoutButton.addEventListener("click", async () => {
   await logout();
   state.token = null;
   state.me = null;
+  state.ui.advancedCategoryManualOverride = false;
   state.opportunities = [];
   state.history = await getItem(STORAGE_KEYS.history, []);
   state.scanStatus = "Aguardando login";
@@ -1319,7 +1435,8 @@ refs.applyFiltersButton.addEventListener("click", async () => {
 
     try {
       await refreshData();
-      setFeedback("Filtros aplicados.", "ok");
+      const categoryLabel = getCategoryByKey(state.filters.categoryKey).label;
+      setFeedback(`Filtros aplicados. Sua busca atual está usando "${categoryLabel}".`, "ok");
     } catch (error) {
       setFeedback(friendlyError(error), "error");
     }
@@ -1386,16 +1503,28 @@ refs.runNowButton.addEventListener("click", async () => {
       return;
     }
 
+    const coverage = getCategoryCoverage(state.filters.categoryKey);
+    if (coverage.supportedRealSources.length === 0) {
+      setFeedback(
+        `${coverage.category.label} ainda não possui cobertura real suficiente nas fontes ativas. Tente Veículos ou Todos.`,
+        "error");
+      renderStatus();
+      return;
+    }
+
     await setItem(STORAGE_KEYS.filters, state.filters);
 
-    state.scanStatus = "Buscando oportunidades";
+    state.ui.lastExecutionCategoryKey = state.filters.categoryKey;
+    state.ui.lastExecutionRealSources = coverage.supportedRealSources.length;
+    state.scanStatus = `Buscando em "${coverage.category.label}" com ${coverage.supportedRealSources.length} fonte(s) reais compatíveis.`;
     renderStatus();
     setFeedback("Buscando oportunidades...", "ok");
 
     try {
       const result = await runScanner(state.token, scannerPayload());
+      const executedCategory = getCategoryByKey(state.ui.lastExecutionCategoryKey).label;
       state.scanStatus = result.success
-        ? `Concluída às ${new Date(result.completedAtUtc).toLocaleTimeString("pt-BR")}`
+        ? `Concluída às ${new Date(result.completedAtUtc).toLocaleTimeString("pt-BR")} | Categoria usada: ${executedCategory} | Fontes reais: ${state.ui.lastExecutionRealSources}`
         : "Falhou";
 
       renderStatus();
