@@ -51,7 +51,7 @@ const DEFAULT_FILTERS = {
   categoryKey: "all",
   activeSources: [...SOURCE_OPTIONS],
   search: "",
-  minScore: 60,
+  minScore: 20,
   region: "",
   maxPrice: null
 };
@@ -64,6 +64,9 @@ const state = {
   history: [],
   scanStatus: "Aguardando login",
   filters: { ...DEFAULT_FILTERS },
+  ui: {
+    advancedMode: false
+  },
   api: {
     baseUrl: "",
     online: false
@@ -84,12 +87,16 @@ const refs = {
   logoutButton: document.getElementById("logout-button"),
 
   runNowButton: document.getElementById("run-now-button"),
+  toggleAdvancedButton: document.getElementById("toggle-advanced-button"),
+  advancedFiltersPanel: document.getElementById("advanced-filters-panel"),
 
   categoryInput: document.getElementById("category-input"),
+  advancedCategoryInput: document.getElementById("advanced-category-input"),
+  regionScopeInput: document.getElementById("region-scope-input"),
+  regionAdvancedInput: document.getElementById("region-advanced-input"),
   sourcesList: document.getElementById("sources-list"),
   searchInput: document.getElementById("search-input"),
   scoreInput: document.getElementById("score-input"),
-  regionInput: document.getElementById("region-input"),
   maxPriceInput: document.getElementById("max-price-input"),
   applyFiltersButton: document.getElementById("apply-filters-button"),
   saveSettingsButton: document.getElementById("save-settings-button"),
@@ -134,7 +141,7 @@ function normalizeDomain(domain) {
 function clampScore(value) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) {
-    return 60;
+    return 20;
   }
 
   return Math.max(0, Math.min(100, parsed));
@@ -218,6 +225,32 @@ function resolveCategoryKey(categoryValue, vehicleType) {
   }
 
   return "all";
+}
+
+function toSimpleCategory(categoryKey) {
+  if (categoryKey === "vehicles") {
+    return "vehicles";
+  }
+
+  if (categoryKey === "real_estate") {
+    return "real_estate";
+  }
+
+  return "all";
+}
+
+function selectedCategoryKeyFromForm() {
+  const simpleCategory = toSimpleCategory(refs.categoryInput.value);
+  if (!state.ui.advancedMode) {
+    return simpleCategory;
+  }
+
+  const advancedCategory = getCategoryByKey(refs.advancedCategoryInput.value).key;
+  if (advancedCategory === "all" && simpleCategory !== "all") {
+    return simpleCategory;
+  }
+
+  return advancedCategory;
 }
 
 function mergeSearch(baseSearch, categoryHint) {
@@ -452,6 +485,13 @@ function showAdvancedConnectionBox() {
   }
 }
 
+function renderAdvancedMode() {
+  const expanded = !!state.ui.advancedMode;
+  refs.toggleAdvancedButton.setAttribute("aria-expanded", expanded ? "true" : "false");
+  refs.toggleAdvancedButton.textContent = expanded ? "Ocultar modo avançado" : "Modo avançado";
+  refs.advancedFiltersPanel.classList.toggle("hidden", !expanded);
+}
+
 function setButtonBusy(button, busyText, isBusy) {
   if (!button) {
     return;
@@ -576,12 +616,17 @@ function renderSources() {
 }
 
 function renderFilters() {
-  refs.categoryInput.value = state.filters.categoryKey;
+  refs.categoryInput.value = toSimpleCategory(state.filters.categoryKey);
+  refs.advancedCategoryInput.value = state.filters.categoryKey;
   refs.searchInput.value = state.filters.search;
   refs.scoreInput.value = String(state.filters.minScore);
-  refs.regionInput.value = state.filters.region;
+  refs.regionScopeInput.value = state.filters.region === "SP" ? "SP" : "BR";
+  refs.regionAdvancedInput.value = state.filters.region && state.filters.region !== "SP"
+    ? state.filters.region
+    : "";
   refs.maxPriceInput.value = state.filters.maxPrice === null ? "" : String(state.filters.maxPrice);
   renderSources();
+  renderAdvancedMode();
 }
 
 function readFiltersFromForm() {
@@ -589,12 +634,15 @@ function readFiltersFromForm() {
     refs.sourcesList.querySelectorAll('input[type="checkbox"][data-source]:checked')
   ).map((checkbox) => checkbox.getAttribute("data-source") || "");
 
+  const advancedRegion = refs.regionAdvancedInput.value.trim().toUpperCase().slice(0, 10);
+  const regionByScope = refs.regionScopeInput.value === "SP" ? "SP" : "";
+
   state.filters = {
-    categoryKey: getCategoryByKey(refs.categoryInput.value).key,
+    categoryKey: selectedCategoryKeyFromForm(),
     activeSources: normalizeSources(selectedSources),
     search: refs.searchInput.value.trim(),
     minScore: clampScore(refs.scoreInput.value),
-    region: refs.regionInput.value.trim().toUpperCase().slice(0, 10),
+    region: advancedRegion || regionByScope,
     maxPrice: normalizeMaxPrice(refs.maxPriceInput.value)
   };
 }
@@ -620,7 +668,7 @@ function settingsPayload() {
     minScore: query.minScore,
     vehicleType: query.vehicleType,
     region: state.filters.region || null,
-    advancedFiltersEnabled: false,
+    advancedFiltersEnabled: state.ui.advancedMode,
     category: category.label,
     activeSources: state.filters.activeSources,
     maxPrice: state.filters.maxPrice
@@ -676,6 +724,14 @@ function renderAuth() {
   refs.sessionView.classList.toggle("hidden", !authenticated);
 
   refs.runNowButton.disabled = !authenticated;
+  refs.toggleAdvancedButton.disabled = !authenticated;
+  refs.categoryInput.disabled = !authenticated;
+  refs.advancedCategoryInput.disabled = !authenticated;
+  refs.regionScopeInput.disabled = !authenticated;
+  refs.regionAdvancedInput.disabled = !authenticated;
+  refs.searchInput.disabled = !authenticated;
+  refs.scoreInput.disabled = !authenticated;
+  refs.maxPriceInput.disabled = !authenticated;
   refs.applyFiltersButton.disabled = !authenticated;
   refs.saveSettingsButton.disabled = !authenticated;
   refs.useDomainButton.disabled = !authenticated || !state.tabContext?.domain;
@@ -736,9 +792,9 @@ function renderStatus() {
 
   refs.scanStatusText.textContent = state.scanStatus;
   refs.statusGrid.innerHTML = [
-    ["Categoria", categoryLabel],
-    ["Fontes ativas", String(state.filters.activeSources.length)],
-    ["Resultados", String(state.opportunities.length)],
+    ["Tipo", categoryLabel],
+    ["Sites ativos", String(state.filters.activeSources.length)],
+    ["Lotes encontrados", String(state.opportunities.length)],
     ["Maior score", maxScore.toFixed(1)],
     ["Oportunidades fortes", String(strongCount)]
   ]
@@ -1014,6 +1070,20 @@ async function bootstrap() {
   }
 }
 
+refs.toggleAdvancedButton?.addEventListener("click", async () => {
+  state.ui.advancedMode = !state.ui.advancedMode;
+
+  if (!state.ui.advancedMode) {
+    refs.regionAdvancedInput.value = "";
+    refs.advancedCategoryInput.value = toSimpleCategory(refs.categoryInput.value);
+  }
+
+  renderAdvancedMode();
+  readFiltersFromForm();
+  renderStatus();
+  await setItem(STORAGE_KEYS.filters, state.filters);
+});
+
 refs.testApiButton?.addEventListener("click", async () => {
   await withButtonBusy(refs.testApiButton, "Testando...", async () => {
     const ok = await ensureApiOnline(true);
@@ -1191,15 +1261,15 @@ refs.saveSettingsButton.addEventListener("click", async () => {
 });
 
 refs.runNowButton.addEventListener("click", async () => {
-  await withButtonBusy(refs.runNowButton, "Rodando...", async () => {
+  await withButtonBusy(refs.runNowButton, "Buscando...", async () => {
     if (!state.token) {
-      setFeedback("Faça login para rodar o scanner.", "error");
+      setFeedback("Faça login para buscar oportunidades.", "error");
       return;
     }
 
     const apiReady = await ensureApiOnline(false);
     if (!apiReady) {
-      setFeedback("API offline. Não foi possível rodar o scanner.", "error");
+      setFeedback("API offline. Não foi possível buscar oportunidades.", "error");
       return;
     }
 
@@ -1212,9 +1282,9 @@ refs.runNowButton.addEventListener("click", async () => {
 
     await setItem(STORAGE_KEYS.filters, state.filters);
 
-    state.scanStatus = "Executando varredura";
+    state.scanStatus = "Buscando oportunidades";
     renderStatus();
-    setFeedback("Executando varredura...", "ok");
+    setFeedback("Buscando oportunidades...", "ok");
 
     try {
       const result = await runScanner(state.token, scannerPayload());
