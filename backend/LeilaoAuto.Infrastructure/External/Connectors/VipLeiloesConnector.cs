@@ -39,7 +39,7 @@ public class VipLeiloesConnector : BaseLotConnector
             var html = await FetchHtmlAsync(PortalUrl, cancellationToken);
             if (string.IsNullOrWhiteSpace(html))
             {
-                return BuildMockRawLots("vipleiloes", "Vip Leiloes");
+                return [];
             }
 
             var catalogOffers = ExtractCatalogOffers(html)
@@ -49,7 +49,7 @@ public class VipLeiloesConnector : BaseLotConnector
 
             if (catalogOffers.Count == 0)
             {
-                return BuildMockRawLots("vipleiloes", "Vip Leiloes");
+                return [];
             }
 
             return catalogOffers
@@ -72,8 +72,8 @@ public class VipLeiloesConnector : BaseLotConnector
         }
         catch (Exception exception)
         {
-            Logger.LogWarning(exception, "VipLeiloes connector failed in real search. Falling back to structured mock.");
-            return BuildMockRawLots("vipleiloes", "Vip Leiloes");
+            Logger.LogWarning(exception, "VipLeiloes connector failed in real search. Returning empty result.");
+            return [];
         }
     }
 

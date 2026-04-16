@@ -19,37 +19,7 @@ namespace LeilaoAuto.Infrastructure.External.Connectors;
 /// </summary>
 public abstract class BaseLotConnector : ILotConnector
 {
-    private static readonly IReadOnlyDictionary<string, (string Active, string Closed)> MockLotUrls =
-        new Dictionary<string, (string Active, string Closed)>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["superbid"] = (
-                "https://www.superbid.net/oferta/veiculo-automotor-gm-omega-gls-4583144",
-                "https://www.superbid.net/oferta/veiculo-automotor-gm-omega-gls-4583144?lote=2001"),
-            ["sodresantoro"] = (
-                "https://hml-web.sodresantoro.com.br/leilao/28060/lote/2714922/",
-                "https://hml-web.sodresantoro.com.br/leilao/28060/lote/2713353/"),
-            ["vipleiloes"] = (
-                "https://www.vipleiloes.com.br/evento/anuncio/yamaha-ybr150-factor-25372",
-                "https://www.vipleiloes.com.br/evento/anuncio/fiat-uno-electronic-25172"),
-            ["freitas"] = (
-                "https://www.freitasleiloeiro.com.br/leiloes/lote?leilaoid=6055&lote=64",
-                "https://www.freitasleiloeiro.com.br/leiloes/lote?leilaoid=6075&lote=95"),
-            ["zukerman"] = (
-                "https://www.portalzuk.com.br/leilao-de-imoveis/v/banco-bradesco/35860",
-                "https://www.portalzuk.com.br/leilao-de-imoveis/v/banco-santander/35418"),
-            ["megaleiloes"] = (
-                "https://www.megaleiloes.com.br/veiculos/carros/sp/santos/carro-honda-civic-lx-2004-j121973",
-                "https://www.megaleiloes.com.br/veiculos/carros/sp/sao-paulo/carro-volkswagen-gol-10-20122013-j119852"),
-            ["pactoleiloes"] = (
-                "https://www.pactoleiloes.com.br/lotes/9590/2532/1/renault/clio/expression-16-hiflex-2007-2008-branca-dourados-ms",
-                "https://www.pactoleiloes.com.br/lotes/9588/2523/1/honda/cg-150-titan-es-2008-prata-ponta-pora-ms"),
-            ["milanleiloes"] = (
-                "https://www.milanleiloes.com.br/Geral.asp?CL=13337",
-                "https://www.milanleiloes.com.br/Geral.asp?CL=13292")
-        };
-
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly AuctionProviderOptions _options;
     protected readonly ILogger Logger;
 
     protected BaseLotConnector(
@@ -58,7 +28,6 @@ public abstract class BaseLotConnector : ILotConnector
         ILogger logger)
     {
         _httpClientFactory = httpClientFactory;
-        _options = options.Value;
         Logger = logger;
     }
 
@@ -335,62 +304,6 @@ public abstract class BaseLotConnector : ILotConnector
             AppraisedValue: appraisedValue,
             StartsAt: startsAt,
             EndsAt: endsAt);
-    }
-
-    protected static IReadOnlyList<object> BuildMockRawLots(string connectorCode, string auctioneer)
-    {
-        var (activeUrl, closedUrl) = GetMockLotUrls(connectorCode);
-
-        return
-        [
-            new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
-            {
-                ["externalId"] = $"{connectorCode}-active-001",
-                ["auctioneer"] = auctioneer,
-                ["lotNumber"] = "1001",
-                ["make"] = "Volkswagen",
-                ["model"] = "Gol 1.6 MSI",
-                ["year"] = 2020,
-                ["vehicleType"] = "Car",
-                ["uf"] = "SP",
-                ["vehicleCondition"] = "Running",
-                ["status"] = "Active",
-                ["lotUrl"] = activeUrl,
-                ["currentBid"] = 27900m,
-                ["finalPrice"] = null,
-                ["appraisedValue"] = 34500m,
-                ["startsAt"] = DateTimeOffset.UtcNow.AddHours(-2),
-                ["endsAt"] = DateTimeOffset.UtcNow.AddHours(5)
-            },
-            new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
-            {
-                ["externalId"] = $"{connectorCode}-closed-001",
-                ["auctioneer"] = auctioneer,
-                ["lotNumber"] = "2001",
-                ["make"] = "Honda",
-                ["model"] = "CG 160 Fan",
-                ["year"] = 2022,
-                ["vehicleType"] = "Motorcycle",
-                ["uf"] = "MG",
-                ["vehicleCondition"] = "Running",
-                ["status"] = "Closed",
-                ["lotUrl"] = closedUrl,
-                ["currentBid"] = null,
-                ["finalPrice"] = 9800m,
-                ["appraisedValue"] = 10900m,
-                ["startsAt"] = DateTimeOffset.UtcNow.AddDays(-5),
-                ["endsAt"] = DateTimeOffset.UtcNow.AddDays(-4)
-            }
-        ];
-    }
-
-    private static (string Active, string Closed) GetMockLotUrls(string connectorCode)
-    {
-        return MockLotUrls.TryGetValue(connectorCode, out var urls)
-            ? urls
-            : (
-                "https://www.superbid.net/oferta/veiculo-automotor-gm-omega-gls-4583144",
-                "https://www.superbid.net/oferta/veiculo-automotor-gm-omega-gls-4583144?lote=2001");
     }
 
     private static Dictionary<string, object?> ToDictionary(JsonElement element)

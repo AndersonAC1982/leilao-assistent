@@ -6,7 +6,8 @@ using System.Text.RegularExpressions;
 namespace LeilaoAuto.Infrastructure.External.Connectors;
 
 /// <summary>
-/// Conector funcional fim-a-fim: busca raw (HTTP com fallback mock), parse e validacao de lotUrl.
+/// Conector funcional fim-a-fim: busca raw HTTP, parse e validacao de lotUrl.
+/// Sem fallback para dados mock em runtime.
 /// </summary>
 public class SuperbidConnector : BaseLotConnector
 {
@@ -31,11 +32,6 @@ public class SuperbidConnector : BaseLotConnector
 
     public override async Task<IReadOnlyList<object>> SearchAsync(LotSearchFilterRequest filters, CancellationToken cancellationToken)
     {
-        if (_options.MockMode)
-        {
-            return BuildMockRawLots("superbid", "Superbid");
-        }
-
         try
         {
             var endpoint = string.IsNullOrWhiteSpace(_options.LotsEndpoint) ? "/api/lots" : _options.LotsEndpoint;
@@ -47,10 +43,10 @@ public class SuperbidConnector : BaseLotConnector
         }
         catch (Exception exception)
         {
-            Logger.LogWarning(exception, "Superbid connector failed in remote search. Falling back to structured mock.");
+            Logger.LogWarning(exception, "Superbid connector failed in remote search. Returning empty result.");
         }
 
-        return BuildMockRawLots("superbid", "Superbid");
+        return [];
     }
 
     public override Task<ProviderLotDto?> ParseAsync(object raw, CancellationToken cancellationToken)

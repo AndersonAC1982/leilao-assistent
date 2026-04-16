@@ -63,7 +63,7 @@ services:
       Worker__ConnectorRetryCount: 3
       Worker__ConnectorRetryDelaySeconds: 2
       Worker__RunOnStartup: "true"
-      AuctionProviders__Primary__MockMode: "true"
+      AuctionProviders__Primary__MockMode: "false"
       Fipe__Enabled: "true"
       Fipe__BaseUrl: https://brasilapi.com.br
       Fipe__PriceByCodeEndpoint: /api/fipe/preco/v1/{code}

@@ -464,7 +464,7 @@ public sealed class ExperienceService : IExperienceService
         var connectors = _connectorFactory.CreateByDomain(uri.Host);
         if (connectors.Count == 0)
         {
-            return true;
+            return false;
         }
 
         return connectors.Any(connector => connector.ValidateLotUrl(lotUrl));

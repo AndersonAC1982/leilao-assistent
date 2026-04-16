@@ -47,7 +47,7 @@ public class SodreSantoroConnector : BaseLotConnector
 
             if (string.IsNullOrWhiteSpace(catalogHtml))
             {
-                return BuildMockRawLots("sodresantoro", Auctioneer);
+                return [];
             }
 
             var catalog = ExtractCatalogCandidates(catalogHtml);
@@ -77,14 +77,12 @@ public class SodreSantoroConnector : BaseLotConnector
                 .Cast<object>()
                 .ToList();
 
-            return result.Count == 0
-                ? BuildMockRawLots("sodresantoro", Auctioneer)
-                : result;
+            return result.Count == 0 ? [] : result;
         }
         catch (Exception ex)
         {
-            Logger.LogWarning(ex, "SodreSantoro connector failed in real search. Falling back to structured mock.");
-            return BuildMockRawLots("sodresantoro", Auctioneer);
+            Logger.LogWarning(ex, "SodreSantoro connector failed in real search. Returning empty result.");
+            return [];
         }
     }
 

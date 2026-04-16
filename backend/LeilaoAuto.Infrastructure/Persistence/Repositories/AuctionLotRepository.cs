@@ -18,8 +18,7 @@ public class AuctionLotRepository : IAuctionLotRepository
 
     public async Task<IReadOnlyList<AuctionLot>> GetActiveLotsAsync(CancellationToken cancellationToken)
     {
-        var lots = await _dbContext.AuctionLots
-            .AsNoTracking()
+        var lots = await ApplyIntegrityGuard(_dbContext.AuctionLots.AsNoTracking())
             .Where(lot => lot.Status == LotStatus.Active || lot.Status == LotStatus.Confirmed)
             .OrderByDescending(lot => lot.UpdatedAtUtc)
             .Take(2000)
@@ -30,8 +29,7 @@ public class AuctionLotRepository : IAuctionLotRepository
 
     public async Task<IReadOnlyList<AuctionLot>> GetClosedLotsAsync(CancellationToken cancellationToken)
     {
-        var lots = await _dbContext.AuctionLots
-            .AsNoTracking()
+        var lots = await ApplyIntegrityGuard(_dbContext.AuctionLots.AsNoTracking())
             .Where(lot => lot.Status == LotStatus.Closed)
             .OrderByDescending(lot => lot.EndsAt)
             .Take(5000)
@@ -42,8 +40,7 @@ public class AuctionLotRepository : IAuctionLotRepository
 
     public async Task<IReadOnlyList<AuctionLot>> SearchActiveAsync(LotSearchFilterRequest filter, CancellationToken cancellationToken)
     {
-        var query = _dbContext.AuctionLots
-            .AsNoTracking()
+        var query = ApplyIntegrityGuard(_dbContext.AuctionLots.AsNoTracking())
             .Where(lot => lot.Status == LotStatus.Active || lot.Status == LotStatus.Confirmed);
 
         query = ApplyFilter(query, filter);
@@ -58,8 +55,7 @@ public class AuctionLotRepository : IAuctionLotRepository
 
     public async Task<IReadOnlyList<AuctionLot>> SearchClosedAsync(LotSearchFilterRequest filter, CancellationToken cancellationToken)
     {
-        var query = _dbContext.AuctionLots
-            .AsNoTracking()
+        var query = ApplyIntegrityGuard(_dbContext.AuctionLots.AsNoTracking())
             .Where(lot => lot.Status == LotStatus.Closed);
 
         query = ApplyFilter(query, filter);
@@ -74,8 +70,7 @@ public class AuctionLotRepository : IAuctionLotRepository
 
     public async Task<AuctionLot?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
-        var lot = await _dbContext.AuctionLots
-            .AsNoTracking()
+        var lot = await ApplyIntegrityGuard(_dbContext.AuctionLots.AsNoTracking())
             .FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
 
         if (lot is null)
@@ -98,6 +93,10 @@ public class AuctionLotRepository : IAuctionLotRepository
 
         var lot = await _dbContext.AuctionLots
             .AsNoTracking()
+            .Where(item =>
+                !item.ExternalId.StartsWith("legacy-")
+                && !item.ExternalId.EndsWith("-active-001")
+                && !item.ExternalId.EndsWith("-closed-001"))
             .FirstOrDefaultAsync(
                 item => (item.Status == LotStatus.Active || item.Status == LotStatus.Confirmed)
                         && item.Auctioneer.ToLower() == normalizedAuctioneer
@@ -119,6 +118,10 @@ public class AuctionLotRepository : IAuctionLotRepository
 
         var query = _dbContext.AuctionLots
             .AsNoTracking()
+            .Where(lot =>
+                !lot.ExternalId.StartsWith("legacy-")
+                && !lot.ExternalId.EndsWith("-active-001")
+                && !lot.ExternalId.EndsWith("-closed-001"))
             .Where(lot => lot.Status == LotStatus.Closed);
 
         query = ApplyFilter(query, filter);
@@ -158,6 +161,10 @@ public class AuctionLotRepository : IAuctionLotRepository
 
         var averages = await _dbContext.AuctionLots
             .AsNoTracking()
+            .Where(lot =>
+                !lot.ExternalId.StartsWith("legacy-")
+                && !lot.ExternalId.EndsWith("-active-001")
+                && !lot.ExternalId.EndsWith("-closed-001"))
             .Where(lot => lot.Status == LotStatus.Closed
                           && lot.FinalPrice.HasValue
                           && normalizedSet.Contains(lot.NormalizedModel))
@@ -278,5 +285,13 @@ public class AuctionLotRepository : IAuctionLotRepository
         }
 
         return query.Where(lot => !string.IsNullOrWhiteSpace(lot.LotUrl));
+    }
+
+    private static IQueryable<AuctionLot> ApplyIntegrityGuard(IQueryable<AuctionLot> query)
+    {
+        return query.Where(lot =>
+            !lot.ExternalId.StartsWith("legacy-")
+            && !lot.ExternalId.EndsWith("-active-001")
+            && !lot.ExternalId.EndsWith("-closed-001"));
     }
 }

@@ -5,8 +5,9 @@ using Microsoft.Extensions.Options;
 namespace LeilaoAuto.Infrastructure.External.Connectors;
 
 /// <summary>
-/// Conector estruturado por dominio com mock inicial.
-/// TODO: implementar scraping/API real especifica do dominio.
+/// Conector estruturado por domínio.
+/// TODO: implementar scraping/API real específica do domínio.
+/// Enquanto isso, retorna vazio (sem mock em runtime).
 /// </summary>
 public class PactoLeiloesConnector : BaseLotConnector
 {
@@ -28,9 +29,8 @@ public class PactoLeiloesConnector : BaseLotConnector
 
     public override Task<IReadOnlyList<object>> SearchAsync(LotSearchFilterRequest filters, CancellationToken cancellationToken)
     {
-        // TODO(domain): substituir mock por consulta HTTP real com parser dedicado.
-        var raw = BuildMockRawLots("pactoleiloes", "Pacto Leiloes");
-        return Task.FromResult(raw);
+        Logger.LogInformation("PactoLeiloes connector is not implemented yet. Returning empty result.");
+        return Task.FromResult<IReadOnlyList<object>>([]);
     }
 
     public override Task<ProviderLotDto?> ParseAsync(object raw, CancellationToken cancellationToken)

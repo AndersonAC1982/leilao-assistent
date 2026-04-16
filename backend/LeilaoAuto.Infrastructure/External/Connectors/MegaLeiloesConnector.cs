@@ -68,7 +68,7 @@ public class MegaLeiloesConnector : BaseLotConnector
 
             if (lotUrls.Count == 0)
             {
-                return BuildMockRawLots("megaleiloes", "Mega Leiloes");
+                return [];
             }
 
             return lotUrls
@@ -88,8 +88,8 @@ public class MegaLeiloesConnector : BaseLotConnector
         }
         catch (Exception exception)
         {
-            Logger.LogWarning(exception, "MegaLeiloes connector failed in real search. Falling back to structured mock.");
-            return BuildMockRawLots("megaleiloes", "Mega Leiloes");
+            Logger.LogWarning(exception, "MegaLeiloes connector failed in real search. Returning empty result.");
+            return [];
         }
     }
 
